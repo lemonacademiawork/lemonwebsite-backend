@@ -1,0 +1,2 @@
+// Error middleware structure
+export {};

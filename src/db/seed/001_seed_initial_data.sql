@@ -1,0 +1,1 @@
+-- Seed Data Structure: 001_seed_initial_data.sql

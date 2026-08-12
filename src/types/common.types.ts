@@ -1,0 +1,2 @@
+// Common types structure
+export {};

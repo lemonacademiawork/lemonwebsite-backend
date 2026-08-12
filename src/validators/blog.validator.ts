@@ -1,0 +1,2 @@
+// Blog validator structure
+export {};

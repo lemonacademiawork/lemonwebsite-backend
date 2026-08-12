@@ -1,0 +1,2 @@
+// Course types structure
+export {};

@@ -1,0 +1,2 @@
+// Cloudinary config structure
+export {};

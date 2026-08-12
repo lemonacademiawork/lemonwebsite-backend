@@ -1,0 +1,2 @@
+// Payment types structure
+export {};

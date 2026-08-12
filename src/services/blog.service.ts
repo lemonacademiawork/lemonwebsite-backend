@@ -1,0 +1,2 @@
+// Blog service structure
+export {};

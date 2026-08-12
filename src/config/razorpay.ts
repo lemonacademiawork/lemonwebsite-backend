@@ -1,0 +1,2 @@
+// Razorpay config structure
+export {};

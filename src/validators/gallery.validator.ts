@@ -1,0 +1,2 @@
+// Gallery validator structure
+export {};

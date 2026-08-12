@@ -1,0 +1,2 @@
+// Course service structure
+export {};

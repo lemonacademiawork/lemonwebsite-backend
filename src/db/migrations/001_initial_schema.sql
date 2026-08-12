@@ -1,0 +1,1 @@
+-- Migration Structure: 001_initial_schema.sql

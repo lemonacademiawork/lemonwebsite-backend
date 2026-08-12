@@ -1,0 +1,2 @@
+// Referral service structure
+export {};

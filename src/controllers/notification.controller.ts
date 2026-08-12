@@ -1,0 +1,2 @@
+// Controller structure placeholder
+export {};

@@ -1,0 +1,2 @@
+// Route structure placeholder
+export {};

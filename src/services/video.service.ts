@@ -1,0 +1,2 @@
+// Video service structure
+export {};

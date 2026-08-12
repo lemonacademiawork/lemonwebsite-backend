@@ -1,0 +1,2 @@
+// Course validator structure
+export {};

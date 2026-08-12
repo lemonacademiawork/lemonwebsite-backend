@@ -1,0 +1,2 @@
+// Gallery service structure
+export {};

@@ -1,0 +1,2 @@
+// Upload middleware structure
+export {};
