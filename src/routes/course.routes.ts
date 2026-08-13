@@ -1,8 +1,8 @@
 import { Router } from "express";
-
 import {
     createCourseController,
     getAllCoursesController,
+    getCourseByIdController, updateCourseController
 } from "../controllers/course.controller";
 
 import { authenticate } from "../middleware/auth.middleware";
@@ -85,5 +85,28 @@ router.post(
  *         description: Failed to retrieve courses
  */
 router.get("/", getAllCoursesController);
+/**
+ * @swagger
+ * /api/v1/courses/{id}:
+ *   get:
+ *     summary: Get course by ID
+ *     tags: [Courses]
+ */
+router.get("/:id", getCourseByIdController);
+/**
+ * @swagger
+ * /api/v1/courses/{id}:
+ *   patch:
+ *     summary: Update a course
+ *     tags: [Courses]
+ *     security:
+ *       - bearerAuth: []
+ */
+router.patch(
+    "/:id",
+    authenticate,
+    requireRoles("ADMIN", "TRAINER"),
+    updateCourseController
+);
 
 export default router;
