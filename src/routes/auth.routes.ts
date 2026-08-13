@@ -1,11 +1,15 @@
 import { Router } from "express";
+
 import {
     register,
     login,
-    getMe,
     refresh,
     logout,
+    googleLogin,
+    googleCallback,
 } from "../controllers/auth.controller";
+
+import { getMe } from "../controllers/auth.controller";
 import { authenticate } from "../middleware/auth.middleware";
 
 const router = Router();
@@ -15,7 +19,6 @@ const router = Router();
  * /api/v1/auth/register:
  *   post:
  *     summary: Register a new student account
- *     description: Creates a new user with student profile
  *     tags:
  *       - Authentication
  *     requestBody:
@@ -25,20 +28,16 @@ const router = Router();
  *           schema:
  *             type: object
  *             required:
- *               - firstName
- *               - lastName
+ *               - name
  *               - email
  *               - password
  *             properties:
- *               firstName:
+ *               name:
  *                 type: string
- *                 example: John
- *               lastName:
- *                 type: string
- *                 example: Doe
+ *                 example: Sejal Agarwal
  *               email:
  *                 type: string
- *                 example: john.doe@example.com
+ *                 example: sejal@example.com
  *               password:
  *                 type: string
  *                 example: SecurePass123!
@@ -46,7 +45,7 @@ const router = Router();
  *       201:
  *         description: User registered successfully
  *       400:
- *         description: Invalid input data or email already registered
+ *         description: Invalid input or email already registered
  */
 router.post("/register", register);
 
@@ -55,7 +54,6 @@ router.post("/register", register);
  * /api/v1/auth/login:
  *   post:
  *     summary: Log in with email and password
- *     description: Authenticates user credentials and returns tokens
  *     tags:
  *       - Authentication
  *     requestBody:
@@ -70,13 +68,13 @@ router.post("/register", register);
  *             properties:
  *               email:
  *                 type: string
- *                 example: john.doe@example.com
+ *                 example: sejal@example.com
  *               password:
  *                 type: string
  *                 example: SecurePass123!
  *     responses:
  *       200:
- *         description: Logged in successfully, returns accessToken and refreshToken
+ *         description: Logged in successfully
  *       401:
  *         description: Invalid email or password
  */
@@ -86,15 +84,14 @@ router.post("/login", login);
  * @swagger
  * /api/v1/auth/me:
  *   get:
- *     summary: Get current authenticated user profile token payload
- *     description: Returns current user information from auth token
+ *     summary: Get current authenticated user profile
  *     tags:
  *       - Authentication
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: Current user profile data
+ *         description: Current user profile
  *       401:
  *         description: Authentication required or invalid token
  */
@@ -105,7 +102,6 @@ router.get("/me", authenticate, getMe);
  * /api/v1/auth/refresh:
  *   post:
  *     summary: Refresh access token using refresh token
- *     description: Generates a new access token using a valid refresh token
  *     tags:
  *       - Authentication
  *     requestBody:
@@ -119,7 +115,6 @@ router.get("/me", authenticate, getMe);
  *             properties:
  *               refreshToken:
  *                 type: string
- *                 example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
  *     responses:
  *       200:
  *         description: New access token generated successfully
@@ -133,7 +128,6 @@ router.post("/refresh", refresh);
  * /api/v1/auth/logout:
  *   post:
  *     summary: Log out user and invalidate refresh token
- *     description: Clears stored refresh token hash for user
  *     tags:
  *       - Authentication
  *     security:
@@ -143,9 +137,39 @@ router.post("/refresh", refresh);
  *         description: Logged out successfully
  *       401:
  *         description: Authentication required
- *       500:
- *         description: Logout failed
  */
 router.post("/logout", authenticate, logout);
 
+/**
+ * @swagger
+ * /api/v1/auth/google:
+ *   get:
+ *     summary: Start Google OAuth login
+ *     tags:
+ *       - Authentication
+ *     responses:
+ *       302:
+ *         description: Redirects user to Google authentication
+ */
+router.get("/google", googleLogin);
+
+/**
+ * @swagger
+ * /api/v1/auth/google/callback:
+ *   get:
+ *     summary: Google OAuth callback
+ *     tags:
+ *       - Authentication
+ *     responses:
+ *       200:
+ *         description: Google authentication successful
+ *       400:
+ *         description: Google authorization code missing
+ *       401:
+ *         description: Google authentication failed
+ *       500:
+ *         description: Internal server error
+ */
+router.get("/google/callback", googleCallback);
+router.get("/google", googleLogin);
 export default router;

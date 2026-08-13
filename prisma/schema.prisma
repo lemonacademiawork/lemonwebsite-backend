@@ -84,6 +84,7 @@ model User {
   id               String   @id @default(uuid())
   email            String   @unique
   passwordHash     String   @map("password_hash")
+  googleId         String?  @unique @map("google_id")
   role             UserRole @default(STUDENT)
   isActive         Boolean  @default(true) @map("is_active")
   refreshTokenHash String?  @map("refresh_token_hash")
@@ -115,8 +116,7 @@ model User {
 model StudentProfile {
   id                    String   @id @default(uuid())
   userId                String   @unique @map("user_id")
-  firstName             String   @map("first_name")
-  lastName              String   @map("last_name")
+  name                  String
   phone                 String?
   avatarUrl             String?  @map("avatar_url")
   bio                   String?
