@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
-import { createCourse, getAllCourses, getCourseById, updateCourse, deleteCourse, toggleCoursePublish } from "../services/course.service";
+import { createCourseModule, getCourseModules, updateCourseModule, deleteCourseModule, toggleCourseModulePublish } from "../services/course-module.service";
 
-export const createCourseController = async (
+export const createCourseModuleController = async (
     req: Request,
     res: Response
 ) => {
@@ -13,190 +13,46 @@ export const createCourseController = async (
             });
         }
 
-        const {
-            title,
-            slug,
-            description,
-            price,
-            discountedPrice,
-            thumbnailUrl,
-            categoryId,
-        } = req.body;
+        const { courseId } = req.params;
+        const { title, description, orderIndex } = req.body;
 
-        // Basic validation
-        if (!title || !slug || !description || price === undefined) {
+        if (!courseId) {
             return res.status(400).json({
                 success: false,
-                message: "Title, slug, description and price are required",
+                message: "Course ID is required",
             });
         }
 
-        const course = await createCourse(
+        if (!title) {
+            return res.status(400).json({
+                success: false,
+                message: "Module title is required",
+            });
+        }
+
+        const module = await createCourseModule(
+            courseId,
+            req.user.userId,
             {
                 title,
-                slug,
                 description,
-                price: Number(price),
-                discountedPrice:
-                    discountedPrice !== undefined
-                        ? Number(discountedPrice)
+                orderIndex:
+                    orderIndex !== undefined
+                        ? Number(orderIndex)
                         : undefined,
-                thumbnailUrl,
-                categoryId,
-            },
-            req.user.userId
+            }
         );
 
         return res.status(201).json({
             success: true,
-            message: "Course created successfully",
-            data: course,
+            message: "Course module created successfully",
+            data: module,
         });
     } catch (error) {
         const message =
             error instanceof Error
                 ? error.message
-                : "Failed to create course";
-
-        if (message === "Course with this slug already exists") {
-            return res.status(409).json({
-                success: false,
-                message,
-            });
-        }
-
-        return res.status(500).json({
-            success: false,
-            message,
-        });
-    }
-};
-
-export const getAllCoursesController = async (
-    req: Request,
-    res: Response
-) => {
-    try {
-        const courses = await getAllCourses();
-
-        return res.status(200).json({
-            success: true,
-            message: "Courses retrieved successfully",
-            data: courses,
-        });
-    } catch (error) {
-        console.error("Get all courses error:", error);
-
-        return res.status(500).json({
-            success: false,
-            message: "Failed to retrieve courses",
-        });
-    }
-};
-
-export const getCourseByIdController = async (
-    req: Request,
-    res: Response
-) => {
-    try {
-        const { id } = req.params;
-
-        if (!id) {
-            return res.status(400).json({
-                success: false,
-                message: "Course ID is required",
-            });
-        }
-
-        const course = await getCourseById(id);
-
-        return res.status(200).json({
-            success: true,
-            message: "Course retrieved successfully",
-            data: course,
-        });
-    } catch (error) {
-        const message =
-            error instanceof Error
-                ? error.message
-                : "Failed to retrieve course";
-
-        if (message === "Course not found") {
-            return res.status(404).json({
-                success: false,
-                message,
-            });
-        }
-
-        console.error("Get course by ID error:", error);
-
-        return res.status(500).json({
-            success: false,
-            message: "Failed to retrieve course",
-        });
-    }
-};
-export const updateCourseController = async (
-    req: Request,
-    res: Response
-) => {
-    try {
-        if (!req.user) {
-            return res.status(401).json({
-                success: false,
-                message: "Authentication required",
-            });
-        }
-
-        const { id } = req.params;
-
-        if (!id) {
-            return res.status(400).json({
-                success: false,
-                message: "Course ID is required",
-            });
-        }
-
-        const {
-            title,
-            slug,
-            description,
-            price,
-            discountedPrice,
-            thumbnailUrl,
-            categoryId,
-        } = req.body;
-
-        const updatedCourse = await updateCourse(
-            id,
-            req.user.userId,
-            {
-                title,
-                slug,
-                description,
-                price:
-                    price !== undefined
-                        ? Number(price)
-                        : undefined,
-                discountedPrice:
-                    discountedPrice !== undefined
-                        ? Number(discountedPrice)
-                        : undefined,
-                thumbnailUrl,
-                categoryId,
-            }
-        );
-
-        return res.status(200).json({
-            success: true,
-            message: "Course updated successfully",
-            data: updatedCourse,
-        });
-    } catch (error) {
-        const message =
-            error instanceof Error
-                ? error.message
-                : "Failed to update course";
+                : "Failed to create course module";
 
         if (message === "Course not found") {
             return res.status(404).json({
@@ -207,7 +63,7 @@ export const updateCourseController = async (
 
         if (
             message ===
-            "You are not allowed to update this course"
+            "You are not allowed to add modules to this course"
         ) {
             return res.status(403).json({
                 success: false,
@@ -215,25 +71,57 @@ export const updateCourseController = async (
             });
         }
 
-        if (
-            message ===
-            "Course with this slug already exists"
-        ) {
-            return res.status(409).json({
+        console.error("Create course module error:", error);
+
+        return res.status(500).json({
+            success: false,
+            message: "Failed to create course module",
+        });
+    }
+};
+export const getCourseModulesController = async (
+    req: Request,
+    res: Response
+) => {
+    try {
+        const { courseId } = req.params;
+
+        if (!courseId) {
+            return res.status(400).json({
+                success: false,
+                message: "Course ID is required",
+            });
+        }
+
+        const modules = await getCourseModules(courseId);
+
+        return res.status(200).json({
+            success: true,
+            message: "Course modules retrieved successfully",
+            data: modules,
+        });
+    } catch (error) {
+        const message =
+            error instanceof Error
+                ? error.message
+                : "Failed to retrieve course modules";
+
+        if (message === "Course not found") {
+            return res.status(404).json({
                 success: false,
                 message,
             });
         }
 
-        console.error("Update course error:", error);
+        console.error("Get course modules error:", error);
 
         return res.status(500).json({
             success: false,
-            message: "Failed to update course",
+            message: "Failed to retrieve course modules",
         });
     }
 };
-export const deleteCourseController = async (
+export const updateCourseModuleController = async (
     req: Request,
     res: Response
 ) => {
@@ -245,17 +133,104 @@ export const deleteCourseController = async (
             });
         }
 
-        const { id } = req.params;
+        const { courseId, moduleId } = req.params;
 
-        if (!id) {
+        if (!courseId || !moduleId) {
             return res.status(400).json({
                 success: false,
-                message: "Course ID is required",
+                message: "Course ID and Module ID are required",
             });
         }
 
-        const result = await deleteCourse(
-            id,
+        const {
+            title,
+            description,
+            orderIndex,
+            isPublished,
+        } = req.body;
+
+        const updatedModule = await updateCourseModule(
+            courseId,
+            moduleId,
+            req.user.userId,
+            {
+                title,
+                description,
+                orderIndex:
+                    orderIndex !== undefined
+                        ? Number(orderIndex)
+                        : undefined,
+                isPublished,
+            }
+        );
+
+        return res.status(200).json({
+            success: true,
+            message: "Course module updated successfully",
+            data: updatedModule,
+        });
+    } catch (error) {
+        const message =
+            error instanceof Error
+                ? error.message
+                : "Failed to update course module";
+
+        if (message === "Course not found") {
+            return res.status(404).json({
+                success: false,
+                message,
+            });
+        }
+
+        if (message === "Course module not found") {
+            return res.status(404).json({
+                success: false,
+                message,
+            });
+        }
+
+        if (
+            message ===
+            "You are not allowed to update modules in this course"
+        ) {
+            return res.status(403).json({
+                success: false,
+                message,
+            });
+        }
+
+        console.error("Update course module error:", error);
+
+        return res.status(500).json({
+            success: false,
+            message: "Failed to update course module",
+        });
+    }
+};
+export const deleteCourseModuleController = async (
+    req: Request,
+    res: Response
+) => {
+    try {
+        if (!req.user) {
+            return res.status(401).json({
+                success: false,
+                message: "Authentication required",
+            });
+        }
+
+        const { courseId, moduleId } = req.params;
+
+        if (!courseId || !moduleId) {
+            return res.status(400).json({
+                success: false,
+                message: "Course ID and Module ID are required",
+            });
+        }
+
+        const result = await deleteCourseModule(
+            courseId,
+            moduleId,
             req.user.userId
         );
 
@@ -267,9 +242,12 @@ export const deleteCourseController = async (
         const message =
             error instanceof Error
                 ? error.message
-                : "Failed to delete course";
+                : "Failed to delete course module";
 
-        if (message === "Course not found") {
+        if (
+            message === "Course not found" ||
+            message === "Course module not found"
+        ) {
             return res.status(404).json({
                 success: false,
                 message,
@@ -278,7 +256,7 @@ export const deleteCourseController = async (
 
         if (
             message ===
-            "You are not allowed to delete this course"
+            "You are not allowed to delete modules from this course"
         ) {
             return res.status(403).json({
                 success: false,
@@ -286,15 +264,15 @@ export const deleteCourseController = async (
             });
         }
 
-        console.error("Delete course error:", error);
+        console.error("Delete course module error:", error);
 
         return res.status(500).json({
             success: false,
-            message: "Failed to delete course",
+            message: "Failed to delete course module",
         });
     }
 };
-export const toggleCoursePublishController = async (
+export const toggleCourseModulePublishController = async (
     req: Request,
     res: Response
 ) => {
@@ -306,34 +284,38 @@ export const toggleCoursePublishController = async (
             });
         }
 
-        const { id } = req.params;
+        const { courseId, moduleId } = req.params;
 
-        if (!id) {
+        if (!courseId || !moduleId) {
             return res.status(400).json({
                 success: false,
-                message: "Course ID is required",
+                message: "Course ID and Module ID are required",
             });
         }
 
-        const course = await toggleCoursePublish(
-            id,
+        const module = await toggleCourseModulePublish(
+            courseId,
+            moduleId,
             req.user.userId
         );
 
         return res.status(200).json({
             success: true,
-            message: course.isPublished
-                ? "Course published successfully"
-                : "Course unpublished successfully",
-            data: course,
+            message: module.isPublished
+                ? "Course module published successfully"
+                : "Course module unpublished successfully",
+            data: module,
         });
     } catch (error) {
         const message =
             error instanceof Error
                 ? error.message
-                : "Failed to update course publish status";
+                : "Failed to update module publish status";
 
-        if (message === "Course not found") {
+        if (
+            message === "Course not found" ||
+            message === "Course module not found"
+        ) {
             return res.status(404).json({
                 success: false,
                 message,
@@ -342,7 +324,7 @@ export const toggleCoursePublishController = async (
 
         if (
             message ===
-            "You are not allowed to publish this course"
+            "You are not allowed to publish this module"
         ) {
             return res.status(403).json({
                 success: false,
@@ -350,11 +332,11 @@ export const toggleCoursePublishController = async (
             });
         }
 
-        console.error("Toggle course publish error:", error);
+        console.error("Toggle module publish error:", error);
 
         return res.status(500).json({
             success: false,
-            message: "Failed to update course publish status",
+            message: "Failed to update module publish status",
         });
     }
 };

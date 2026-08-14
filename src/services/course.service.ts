@@ -153,3 +153,63 @@ export const updateCourse = async (
 
     return updatedCourse;
 };
+export const deleteCourse = async (
+    courseId: string,
+    trainerId: string
+) => {
+    const course = await prisma.course.findUnique({
+        where: {
+            id: courseId,
+        },
+    });
+
+    if (!course) {
+        throw new Error("Course not found");
+    }
+
+    // Only the trainer who owns the course can delete it
+    if (course.trainerId !== trainerId) {
+        throw new Error("You are not allowed to delete this course");
+    }
+
+    await prisma.course.delete({
+        where: {
+            id: courseId,
+        },
+    });
+
+    return {
+        message: "Course deleted successfully",
+    };
+};
+export const toggleCoursePublish = async (
+    courseId: string,
+    trainerId: string
+) => {
+    const course = await prisma.course.findUnique({
+        where: {
+            id: courseId,
+        },
+    });
+
+    if (!course) {
+        throw new Error("Course not found");
+    }
+
+    if (course.trainerId !== trainerId) {
+        throw new Error(
+            "You are not allowed to publish this course"
+        );
+    }
+
+    const updatedCourse = await prisma.course.update({
+        where: {
+            id: courseId,
+        },
+        data: {
+            isPublished: !course.isPublished,
+        },
+    });
+
+    return updatedCourse;
+};

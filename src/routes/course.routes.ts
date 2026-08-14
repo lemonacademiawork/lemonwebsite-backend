@@ -1,8 +1,12 @@
 import { Router } from "express";
+
 import {
     createCourseController,
     getAllCoursesController,
-    getCourseByIdController, updateCourseController
+    getCourseByIdController,
+    updateCourseController,
+    deleteCourseController,
+    toggleCoursePublishController,
 } from "../controllers/course.controller";
 
 import { authenticate } from "../middleware/auth.middleware";
@@ -15,54 +19,9 @@ const router = Router();
  * /api/v1/courses:
  *   post:
  *     summary: Create a new course
- *     tags:
- *       - Courses
+ *     tags: [Courses]
  *     security:
  *       - bearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - title
- *               - slug
- *               - description
- *               - price
- *             properties:
- *               title:
- *                 type: string
- *                 example: Complete Web Development
- *               slug:
- *                 type: string
- *                 example: complete-web-development
- *               description:
- *                 type: string
- *                 example: Learn full-stack web development from beginner to advanced.
- *               price:
- *                 type: number
- *                 example: 4999
- *               discountedPrice:
- *                 type: number
- *                 example: 3499
- *               thumbnailUrl:
- *                 type: string
- *                 example: https://example.com/course.jpg
- *               categoryId:
- *                 type: string
- *                 example: category-uuid
- *     responses:
- *       201:
- *         description: Course created successfully
- *       400:
- *         description: Invalid course data
- *       401:
- *         description: Authentication required
- *       403:
- *         description: Access denied
- *       409:
- *         description: Course with this slug already exists
  */
 router.post(
     "/",
@@ -76,15 +35,13 @@ router.post(
  * /api/v1/courses:
  *   get:
  *     summary: Get all published courses
- *     tags:
- *       - Courses
- *     responses:
- *       200:
- *         description: Published courses retrieved successfully
- *       500:
- *         description: Failed to retrieve courses
+ *     tags: [Courses]
  */
-router.get("/", getAllCoursesController);
+router.get(
+    "/",
+    getAllCoursesController
+);
+
 /**
  * @swagger
  * /api/v1/courses/{id}:
@@ -92,7 +49,27 @@ router.get("/", getAllCoursesController);
  *     summary: Get course by ID
  *     tags: [Courses]
  */
-router.get("/:id", getCourseByIdController);
+router.get(
+    "/:id",
+    getCourseByIdController
+);
+
+/**
+ * @swagger
+ * /api/v1/courses/{id}/publish:
+ *   patch:
+ *     summary: Publish or unpublish a course
+ *     tags: [Courses]
+ *     security:
+ *       - bearerAuth: []
+ */
+router.patch(
+    "/:id/publish",
+    authenticate,
+    requireRoles("ADMIN", "TRAINER"),
+    toggleCoursePublishController
+);
+
 /**
  * @swagger
  * /api/v1/courses/{id}:
@@ -107,6 +84,22 @@ router.patch(
     authenticate,
     requireRoles("ADMIN", "TRAINER"),
     updateCourseController
+);
+
+/**
+ * @swagger
+ * /api/v1/courses/{id}:
+ *   delete:
+ *     summary: Delete a course
+ *     tags: [Courses]
+ *     security:
+ *       - bearerAuth: []
+ */
+router.delete(
+    "/:id",
+    authenticate,
+    requireRoles("ADMIN", "TRAINER"),
+    deleteCourseController
 );
 
 export default router;
