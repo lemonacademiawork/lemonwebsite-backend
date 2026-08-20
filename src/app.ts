@@ -9,7 +9,7 @@ import courseModuleRoutes from "./routes/course-module.routes";
 import lessonRoutes from "./routes/lesson.routes";
 import procedureRoutes from "./routes/procedure.routes";
 import resourceRoutes from "./routes/resource.routes";
-
+import businessGuidanceRoutes from "./routes/businessGuidance.routes";
 const app = express();
 
 // CORS configuration
@@ -54,5 +54,8 @@ app.use("/api/v1/courses", courseModuleRoutes);
 app.use("/api/v1/modules", lessonRoutes);
 app.use("/api/v1/courses", procedureRoutes);
 app.use("/api/v1/courses", resourceRoutes);
-
+app.use(
+  "/api/v1/courses",
+  businessGuidanceRoutes
+);
 export default app;

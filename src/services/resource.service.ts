@@ -219,3 +219,45 @@ export const updateResource = async (
 
     return updatedResource;
 };
+export const deleteResource = async (
+    courseId: string,
+    resourceId: string,
+    trainerId: string
+) => {
+    const course = await prisma.course.findUnique({
+        where: {
+            id: courseId,
+        },
+    });
+
+    if (!course) {
+        throw new Error("Course not found");
+    }
+
+    if (course.trainerId !== trainerId) {
+        throw new Error(
+            "You are not allowed to delete resources from this course"
+        );
+    }
+
+    const resource = await prisma.resource.findFirst({
+        where: {
+            id: resourceId,
+            courseId,
+        },
+    });
+
+    if (!resource) {
+        throw new Error("Resource not found");
+    }
+
+    await prisma.resource.delete({
+        where: {
+            id: resourceId,
+        },
+    });
+
+    return {
+        message: "Resource deleted successfully",
+    };
+};

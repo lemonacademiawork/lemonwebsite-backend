@@ -3,7 +3,7 @@ import { Router } from "express";
 import {
     createResourceController,
     getResourcesController,
-    updateResourceController,
+    updateResourceController, deleteResourceController
 } from "../controllers/resource.controller";
 
 import { authenticate } from "../middleware/auth.middleware";
@@ -81,5 +81,32 @@ router.patch(
     requireRoles("ADMIN", "TRAINER"),
     updateResourceController
 );
-
+router.delete(
+    "/:courseId/resources/:resourceId",
+    authenticate,
+    requireRoles("ADMIN", "TRAINER"),
+    deleteResourceController
+);
+/**
+ * @swagger
+ * /api/v1/courses/{courseId}/resources/{resourceId}:
+ *   delete:
+ *     summary: Delete a resource
+ *     tags: [Resources]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: courseId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Course ID
+ *       - in: path
+ *         name: resourceId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Resource ID
+ */
 export default router;
