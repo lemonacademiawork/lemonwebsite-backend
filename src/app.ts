@@ -13,7 +13,7 @@ import businessGuidanceRoutes from "./routes/businessGuidance.routes";
 const app = express();
 
 // CORS configuration
-const allowedOrigins = (process.env.ALLOWED_ORIGINS || "http://localhost:3000,http://localhost:5173")
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || "http://localhost:3000,http://localhost:5173,https://course-website-f.vercel.app")
   .split(",")
   .map((origin) => origin.trim().replace(/\/$/, ""))
   .filter(Boolean);
