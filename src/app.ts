@@ -10,6 +10,12 @@ import lessonRoutes from "./routes/lesson.routes";
 import procedureRoutes from "./routes/procedure.routes";
 import resourceRoutes from "./routes/resource.routes";
 import businessGuidanceRoutes from "./routes/businessGuidance.routes";
+
+// BigInt JSON serialization fix for Express / Prisma
+(BigInt.prototype as any).toJSON = function () {
+  return this.toString();
+};
+
 const app = express();
 
 // CORS configuration
@@ -45,8 +51,10 @@ app.use(
 
 app.use(express.json());
 app.use(cookieParser());
+
 // Swagger Documentation
 setupSwagger(app);
+
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/users", userRoutes);
 app.use("/api/v1/courses", courseRoutes);
@@ -54,8 +62,6 @@ app.use("/api/v1/courses", courseModuleRoutes);
 app.use("/api/v1/modules", lessonRoutes);
 app.use("/api/v1/courses", procedureRoutes);
 app.use("/api/v1/courses", resourceRoutes);
-app.use(
-  "/api/v1/courses",
-  businessGuidanceRoutes
-);
+app.use("/api/v1/courses", businessGuidanceRoutes);
+
 export default app;
