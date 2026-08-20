@@ -40,22 +40,22 @@ const router = Router();
  *             properties:
  *               title:
  *                 type: string
- *                 example: Sourdough Starter Measurement Chart PDF
+ *                 example: "Sourdough Starter Measurement Chart PDF"
  *               fileUrl:
  *                 type: string
- *                 example: https://example.com/downloads/starter-chart.pdf
+ *                 example: "https://example.com/downloads/starter-chart.pdf"
  *               fileType:
  *                 type: string
- *                 example: PDF
+ *                 example: "PDF"
  *               fileSize:
  *                 type: integer
  *                 example: 1048576
  *               lessonId:
  *                 type: string
- *                 example: lesson-12345
+ *                 example: "lesson-12345"
  *               procedureId:
  *                 type: string
- *                 example: procedure-12345
+ *                 example: "procedure-12345"
  *     responses:
  *       201:
  *         description: Resource created successfully
@@ -131,13 +131,13 @@ router.get(
  *             properties:
  *               title:
  *                 type: string
- *                 example: Updated Sourdough Starter Chart
+ *                 example: "Updated Sourdough Starter Chart"
  *               fileUrl:
  *                 type: string
- *                 example: https://example.com/downloads/starter-chart-v2.pdf
+ *                 example: "https://example.com/downloads/starter-chart-v2.pdf"
  *               fileType:
  *                 type: string
- *                 example: PDF
+ *                 example: "PDF"
  *               fileSize:
  *                 type: integer
  *                 example: 2097152

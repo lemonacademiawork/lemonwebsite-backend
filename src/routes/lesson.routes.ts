@@ -41,22 +41,22 @@ const router = Router();
  *             properties:
  *               title:
  *                 type: string
- *                 example: Single & Double Crochet Mastery
+ *                 example: "Single & Double Crochet Mastery"
  *               description:
  *                 type: string
- *                 example: Detailed tutorial on height consistency and yarn tension.
+ *                 example: "Detailed tutorial on height consistency and yarn tension."
  *               videoProvider:
  *                 type: string
- *                 example: CLOUDINARY
+ *                 example: "CLOUDINARY"
  *               videoId:
  *                 type: string
- *                 example: v1620000000/crochet_stitches
+ *                 example: "v1620000000/crochet_stitches"
  *               videoUrl:
  *                 type: string
- *                 example: https://example.com/crochet_stitches.mp4
+ *                 example: "https://example.com/crochet_stitches.mp4"
  *               thumbnailUrl:
  *                 type: string
- *                 example: https://example.com/thumb.jpg
+ *                 example: "https://example.com/thumb.jpg"
  *               durationSeconds:
  *                 type: integer
  *                 example: 680
@@ -185,22 +185,22 @@ router.patch(
  *             properties:
  *               title:
  *                 type: string
- *                 example: Advanced Crochet Stitches Mastery
+ *                 example: "Advanced Crochet Stitches Mastery"
  *               description:
  *                 type: string
- *                 example: Updated lesson descriptions.
+ *                 example: "Updated lesson descriptions."
  *               videoProvider:
  *                 type: string
- *                 example: CLOUDINARY
+ *                 example: "CLOUDINARY"
  *               videoId:
  *                 type: string
- *                 example: v1620000000/crochet_stitches_v2
+ *                 example: "v1620000000/crochet_stitches_v2"
  *               videoUrl:
  *                 type: string
- *                 example: https://example.com/crochet_stitches_v2.mp4
+ *                 example: "https://example.com/crochet_stitches_v2.mp4"
  *               thumbnailUrl:
  *                 type: string
- *                 example: https://example.com/thumb_v2.jpg
+ *                 example: "https://example.com/thumb_v2.jpg"
  *               durationSeconds:
  *                 type: integer
  *                 example: 720

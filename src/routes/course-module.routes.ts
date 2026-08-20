@@ -39,10 +39,10 @@ const router = Router();
  *             properties:
  *               title:
  *                 type: string
- *                 example: Module 1: Foundations of Crochet
+ *                 example: "Module 1: Foundations of Crochet"
  *               description:
  *                 type: string
- *                 example: Learn yarn weights, hook sizes, and basic stitches.
+ *                 example: "Learn yarn weights, hook sizes, and basic stitches."
  *               orderIndex:
  *                 type: integer
  *                 example: 1
@@ -124,10 +124,10 @@ router.get(
  *             properties:
  *               title:
  *                 type: string
- *                 example: Module 1: Crochet Essentials & Yarns
+ *                 example: "Module 1: Crochet Essentials & Yarns"
  *               description:
  *                 type: string
- *                 example: Updated module overview.
+ *                 example: "Updated module overview."
  *               orderIndex:
  *                 type: integer
  *                 example: 1

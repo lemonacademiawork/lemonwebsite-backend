@@ -38,16 +38,16 @@ const router = Router();
  *             properties:
  *               title:
  *                 type: string
- *                 example: Lye Solution Safety Procedure
+ *                 example: "Lye Solution Safety Procedure"
  *               contentText:
  *                 type: string
- *                 example: Always add lye to water slowly while stirring in a ventilated area.
+ *                 example: "Always add lye to water slowly while stirring in a ventilated area."
  *               orderIndex:
  *                 type: integer
  *                 example: 1
  *               lessonId:
  *                 type: string
- *                 example: lesson-12345
+ *                 example: "lesson-12345"
  *     responses:
  *       201:
  *         description: Procedure created successfully
@@ -123,16 +123,16 @@ router.get(
  *             properties:
  *               title:
  *                 type: string
- *                 example: Updated Lye Handling Procedure
+ *                 example: "Updated Lye Handling Procedure"
  *               contentText:
  *                 type: string
- *                 example: Updated safety step instructions for handling sodium hydroxide.
+ *                 example: "Updated safety step instructions for handling sodium hydroxide."
  *               orderIndex:
  *                 type: integer
  *                 example: 2
  *               lessonId:
  *                 type: string
- *                 example: lesson-12345
+ *                 example: "lesson-12345"
  *     responses:
  *       200:
  *         description: Procedure updated successfully

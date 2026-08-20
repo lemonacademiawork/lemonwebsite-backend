@@ -37,20 +37,20 @@ const router = Router();
  *             properties:
  *               title:
  *                 type: string
- *                 example: How to Pricing & Market Your Handmade Soap
+ *                 example: "How to Pricing & Market Your Handmade Soap"
  *               contentType:
  *                 type: string
- *                 example: PDF
+ *                 example: "PDF"
  *               description:
  *                 type: string
- *                 example: Step-by-step guidance on pricing, marketing, and distribution for artisans.
+ *                 example: "Step-by-step guidance on pricing, marketing, and distribution for artisans."
  *               resourceUrl:
  *                 type: string
- *                 example: https://example.com/soap-pricing-guide.pdf
+ *                 example: "https://example.com/soap-pricing-guide.pdf"
  *               meetingTime:
  *                 type: string
  *                 format: date-time
- *                 example: 2026-09-01T10:00:00.000Z
+ *                 example: "2026-09-01T10:00:00.000Z"
  *               orderIndex:
  *                 type: integer
  *                 example: 1
@@ -59,7 +59,7 @@ const router = Router();
  *                 example: true
  *               moduleId:
  *                 type: string
- *                 example: module-12345
+ *                 example: "module-12345"
  *     responses:
  *       201:
  *         description: Business guidance created successfully
@@ -135,20 +135,20 @@ router.get(
  *             properties:
  *               title:
  *                 type: string
- *                 example: Advanced Handmade Soap Pricing Strategy
+ *                 example: "Advanced Handmade Soap Pricing Strategy"
  *               contentType:
  *                 type: string
- *                 example: VIDEO
+ *                 example: "VIDEO"
  *               description:
  *                 type: string
- *                 example: Updated strategy video for luxury soap packaging.
+ *                 example: "Updated strategy video for luxury soap packaging."
  *               resourceUrl:
  *                 type: string
- *                 example: https://example.com/soap-packaging-strategy.mp4
+ *                 example: "https://example.com/soap-packaging-strategy.mp4"
  *               meetingTime:
  *                 type: string
  *                 format: date-time
- *                 example: 2026-09-05T14:00:00.000Z
+ *                 example: "2026-09-05T14:00:00.000Z"
  *               orderIndex:
  *                 type: integer
  *                 example: 2
@@ -157,7 +157,7 @@ router.get(
  *                 example: true
  *               moduleId:
  *                 type: string
- *                 example: module-12345
+ *                 example: "module-12345"
  *     responses:
  *       200:
  *         description: Business guidance updated successfully
