@@ -93,6 +93,16 @@ export const loginUser = async (
         },
         include: {
             studentProfile: true,
+            trainerProfile: true,
+            enrollments: {
+                include: {
+                    course: {
+                        include: {
+                            category: true,
+                        },
+                    },
+                },
+            },
         },
     });
 

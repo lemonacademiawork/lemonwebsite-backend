@@ -1,7 +1,11 @@
 import { Router } from "express";
 
 import {
-    createCourseModuleController, getCourseModulesController, updateCourseModuleController, deleteCourseModuleController, toggleCourseModulePublishController
+    createCourseModuleController,
+    getCourseModulesController,
+    updateCourseModuleController,
+    deleteCourseModuleController,
+    toggleCourseModulePublishController
 } from "../controllers/course-module.controller";
 
 import { authenticate } from "../middleware/auth.middleware";
@@ -24,6 +28,38 @@ const router = Router();
  *         schema:
  *           type: string
  *         description: Course ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - title
+ *             properties:
+ *               title:
+ *                 type: string
+ *                 example: Module 1: Foundations of Crochet
+ *               description:
+ *                 type: string
+ *                 example: Learn yarn weights, hook sizes, and basic stitches.
+ *               orderIndex:
+ *                 type: integer
+ *                 example: 1
+ *               isPublished:
+ *                 type: boolean
+ *                 example: true
+ *     responses:
+ *       201:
+ *         description: Course module created successfully
+ *       400:
+ *         description: Title or Course ID missing
+ *       401:
+ *         description: Authentication required
+ *       403:
+ *         description: Forbidden to add module
+ *       404:
+ *         description: Course not found
  */
 router.post(
     "/:courseId/modules",
@@ -31,6 +67,7 @@ router.post(
     requireRoles("ADMIN", "TRAINER"),
     createCourseModuleController
 );
+
 /**
  * @swagger
  * /api/v1/courses/{courseId}/modules:
@@ -44,11 +81,19 @@ router.post(
  *         schema:
  *           type: string
  *         description: Course ID
+ *     responses:
+ *       200:
+ *         description: Course modules retrieved successfully
+ *       400:
+ *         description: Course ID is required
+ *       404:
+ *         description: Course not found
  */
 router.get(
     "/:courseId/modules",
     getCourseModulesController
 );
+
 /**
  * @swagger
  * /api/v1/courses/{courseId}/modules/{moduleId}:
@@ -70,6 +115,36 @@ router.get(
  *         schema:
  *           type: string
  *         description: Module ID
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               title:
+ *                 type: string
+ *                 example: Module 1: Crochet Essentials & Yarns
+ *               description:
+ *                 type: string
+ *                 example: Updated module overview.
+ *               orderIndex:
+ *                 type: integer
+ *                 example: 1
+ *               isPublished:
+ *                 type: boolean
+ *                 example: true
+ *     responses:
+ *       200:
+ *         description: Course module updated successfully
+ *       400:
+ *         description: Missing required IDs
+ *       401:
+ *         description: Authentication required
+ *       403:
+ *         description: Forbidden to update module
+ *       404:
+ *         description: Course or Module not found
  */
 router.patch(
     "/:courseId/modules/:moduleId",
@@ -77,6 +152,7 @@ router.patch(
     requireRoles("ADMIN", "TRAINER"),
     updateCourseModuleController
 );
+
 /**
  * @swagger
  * /api/v1/courses/{courseId}/modules/{moduleId}:
@@ -98,6 +174,15 @@ router.patch(
  *         schema:
  *           type: string
  *         description: Module ID
+ *     responses:
+ *       200:
+ *         description: Course module deleted successfully
+ *       401:
+ *         description: Authentication required
+ *       403:
+ *         description: Forbidden to delete module
+ *       404:
+ *         description: Course or Module not found
  */
 router.delete(
     "/:courseId/modules/:moduleId",
@@ -105,6 +190,7 @@ router.delete(
     requireRoles("ADMIN", "TRAINER"),
     deleteCourseModuleController
 );
+
 /**
  * @swagger
  * /api/v1/courses/{courseId}/modules/{moduleId}/publish:
@@ -126,6 +212,15 @@ router.delete(
  *         schema:
  *           type: string
  *         description: Course Module ID
+ *     responses:
+ *       200:
+ *         description: Module publish status toggled successfully
+ *       401:
+ *         description: Authentication required
+ *       403:
+ *         description: Forbidden to publish module
+ *       404:
+ *         description: Course or Module not found
  */
 router.patch(
     "/:courseId/modules/:moduleId/publish",
@@ -133,4 +228,5 @@ router.patch(
     requireRoles("ADMIN", "TRAINER"),
     toggleCourseModulePublishController
 );
+
 export default router;

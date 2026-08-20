@@ -52,9 +52,32 @@ export const getAllCourses = async () => {
             trainer: {
                 select: {
                     id: true,
+                    name: true,
                     email: true,
+                    trainerProfile: true,
                 },
             },
+            modules: {
+                where: {
+                    isPublished: true,
+                },
+                orderBy: {
+                    orderIndex: "asc",
+                },
+                include: {
+                    lessons: {
+                        where: {
+                            isPublished: true,
+                        },
+                        orderBy: {
+                            orderIndex: "asc",
+                        },
+                    },
+                },
+            },
+            procedures: true,
+            resources: true,
+            businessGuidance: true,
         },
     });
 
@@ -71,10 +94,32 @@ export const getCourseById = async (courseId: string) => {
             trainer: {
                 select: {
                     id: true,
+                    name: true,
                     email: true,
+                    trainerProfile: true,
                 },
             },
-            modules: true,
+            modules: {
+                where: {
+                    isPublished: true,
+                },
+                orderBy: {
+                    orderIndex: "asc",
+                },
+                include: {
+                    lessons: {
+                        where: {
+                            isPublished: true,
+                        },
+                        orderBy: {
+                            orderIndex: "asc",
+                        },
+                    },
+                },
+            },
+            procedures: true,
+            resources: true,
+            businessGuidance: true,
         },
     });
 

@@ -7,12 +7,23 @@ export const getCurrentUser = async (userId: string) => {
         },
         select: {
             id: true,
+            name: true,
             email: true,
             role: true,
             isActive: true,
             createdAt: true,
             updatedAt: true,
             studentProfile: true,
+            trainerProfile: true,
+            enrollments: {
+                include: {
+                    course: {
+                        include: {
+                            category: true,
+                        },
+                    },
+                },
+            },
         },
     });
 

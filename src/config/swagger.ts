@@ -52,27 +52,57 @@ const options: swaggerJsdoc.Options = {
         name: "Users",
         description: "User profile APIs",
       },
+      {
+        name: "Courses",
+        description: "Course management APIs",
+      },
+      {
+        name: "Course Modules",
+        description: "Course module structure APIs",
+      },
+      {
+        name: "Lessons",
+        description: "Course lesson video & content APIs",
+      },
+      {
+        name: "Business Guidance",
+        description: "Business guidance and advisory APIs",
+      },
+      {
+        name: "Resources",
+        description: "Downloadable course resources APIs",
+      },
+      {
+        name: "Procedures",
+        description: "Course step-by-step procedures APIs",
+      },
     ],
   },
   apis: [
     path.join(process.cwd(), "src/routes/**/*.ts").replace(/\\/g, "/"),
+    path.join(process.cwd(), "src/controllers/**/*.ts").replace(/\\/g, "/"),
     path.join(process.cwd(), "src/routes/**/*.js").replace(/\\/g, "/"),
+    path.join(process.cwd(), "src/controllers/**/*.js").replace(/\\/g, "/"),
   ],
 };
 
-const swaggerSpec = swaggerJsdoc(options) as { paths?: Record<string, unknown> };
-
-console.log(
-  "Swagger paths:",
-  Object.keys(swaggerSpec.paths || {})
-);
+export const getSwaggerSpec = () => {
+  return swaggerJsdoc(options);
+};
 
 export const setupSwagger = (app: Express): void => {
+  const swaggerSpec = getSwaggerSpec();
+
   app.use(
     "/api-docs",
     swaggerUi.serve,
     swaggerUi.setup(swaggerSpec)
   );
+
+  app.get("/api-docs-json", (_req, res) => {
+    res.setHeader("Content-Type", "application/json");
+    res.send(getSwaggerSpec());
+  });
 
   console.log(
     "Swagger UI available at http://localhost:5000/api-docs"
