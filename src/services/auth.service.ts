@@ -54,6 +54,7 @@ export const registerUser = async (data: RegisterData) => {
 
     const user = await prisma.user.create({
         data: {
+            name,
             email,
             passwordHash: hashedPassword,
 
