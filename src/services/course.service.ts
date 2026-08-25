@@ -258,3 +258,104 @@ export const toggleCoursePublish = async (
 
     return updatedCourse;
 };
+
+export const getCourseContent = async (
+    courseId: string,
+    studentId: string
+) => {
+    const course = await prisma.course.findFirst({
+        where: {
+            id: courseId,
+        },
+        include: {
+            category: true,
+            trainer: {
+                select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                    trainerProfile: true,
+                },
+            },
+            modules: {
+                where: {
+                    isPublished: true,
+                },
+                orderBy: {
+                    orderIndex: "asc",
+                },
+                include: {
+                    lessons: {
+                        where: {
+                            isPublished: true,
+                        },
+                        orderBy: {
+                            orderIndex: "asc",
+                        },
+                        include: {
+                            procedures: {
+                                orderBy: {
+                                    orderIndex: "asc",
+                                },
+                            },
+                            resources: true,
+                        },
+                    },
+                    businessGuidance: {
+                        where: {
+                            isPublished: true,
+                        },
+                        orderBy: {
+                            orderIndex: "asc",
+                        },
+                    },
+                },
+            },
+            procedures: {
+                orderBy: {
+                    orderIndex: "asc",
+                },
+            },
+            resources: true,
+            businessGuidance: {
+                where: {
+                    isPublished: true,
+                },
+                orderBy: {
+                    orderIndex: "asc",
+                },
+            },
+        },
+    });
+
+    if (!course) {
+        throw new Error("Course not found");
+    }
+
+    const [progress, enrollment] = await Promise.all([
+        prisma.progress.findMany({
+            where: {
+                studentId,
+                courseId,
+            },
+        }),
+        prisma.enrollment.findFirst({
+            where: {
+                studentId,
+                courseId,
+            },
+            select: {
+                id: true,
+                status: true,
+                source: true,
+                enrolledAt: true,
+            },
+        }),
+    ]);
+
+    return {
+        ...course,
+        enrollment,
+        progress,
+    };
+};

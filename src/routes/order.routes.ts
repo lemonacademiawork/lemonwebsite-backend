@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { authenticate } from "../middleware/auth.middleware";
-import { createOrderController, getOrdersController, getOrderByIdController } from "../controllers/order.controller";
+import { createOrderController, getOrdersController, getOrderByIdController, updateOrderController, deleteOrderController } from "../controllers/order.controller";
 
 const router = Router();
 
@@ -114,5 +114,79 @@ router.get(
     "/:orderId",
     authenticate,
     getOrderByIdController
+);
+/**
+ * @swagger
+ * /api/v1/orders/{orderId}:
+ *   patch:
+ *     summary: Update an order
+ *     tags: [Orders]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: orderId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               status:
+ *                 type: string
+ *                 enum:
+ *                   - PENDING
+ *                   - PAID
+ *                   - FAILED
+ *                   - CANCELLED
+ *                   - REFUNDED
+ *               razorpayOrderId:
+ *                 type: string
+ *               appliedReferralCode:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Order updated successfully
+ */
+router.patch(
+    "/:orderId",
+    authenticate,
+    updateOrderController
+);
+/**
+ * @swagger
+ * /api/v1/orders/{orderId}:
+ *   delete:
+ *     summary: Delete an order
+ *     tags: [Orders]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: orderId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Order ID
+ *     responses:
+ *       200:
+ *         description: Order deleted successfully
+ *       400:
+ *         description: Paid order cannot be deleted
+ *       401:
+ *         description: Authentication required
+ *       404:
+ *         description: Order not found
+ *       500:
+ *         description: Server error
+ */
+router.delete(
+    "/:orderId",
+    authenticate,
+    deleteOrderController
 );
 export default router;

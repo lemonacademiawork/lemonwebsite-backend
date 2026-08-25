@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { createCourse, getAllCourses, getCourseById, updateCourse, deleteCourse, toggleCoursePublish } from "../services/course.service";
+import { createCourse, getAllCourses, getCourseById, updateCourse, deleteCourse, toggleCoursePublish, getCourseContent } from "../services/course.service";
 
 export const createCourseController = async (
     req: Request,
@@ -355,6 +355,66 @@ export const toggleCoursePublishController = async (
         return res.status(500).json({
             success: false,
             message: "Failed to update course publish status",
+        });
+    }
+};
+
+export const getCourseContentController = async (
+    req: Request,
+    res: Response
+) => {
+    try {
+        if (!req.user) {
+            return res.status(401).json({
+                success: false,
+                message: "Authentication required",
+            });
+        }
+
+        const courseId = req.params.courseId || req.params.id;
+
+        if (!courseId) {
+            return res.status(400).json({
+                success: false,
+                message: "Course ID is required",
+            });
+        }
+
+        const content = await getCourseContent(
+            courseId,
+            req.user.userId
+        );
+
+        return res.status(200).json({
+            success: true,
+            message: "Course content retrieved successfully",
+            data: content,
+        });
+    } catch (error) {
+        const message =
+            error instanceof Error
+                ? error.message
+                : "Failed to retrieve course content";
+
+        if (message === "Course not found") {
+            return res.status(404).json({
+                success: false,
+                message,
+            });
+        }
+
+        if (message === "You are not enrolled in this course") {
+            return res.status(403).json({
+                success: false,
+                message,
+            });
+        }
+
+        console.error("Get course content error:", error);
+
+        return res.status(500).json({
+            success: false,
+            message: "Failed to retrieve course content",
         });
     }
 };

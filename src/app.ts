@@ -11,7 +11,8 @@ import procedureRoutes from "./routes/procedure.routes";
 import resourceRoutes from "./routes/resource.routes";
 import businessGuidanceRoutes from "./routes/businessGuidance.routes";
 import orderRoutes from "./routes/order.routes";
-
+import paymentRoutes from "./routes/payment.routes";
+import enrollmentRoutes from "./routes/enrollment.routes";
 // BigInt JSON serialization fix for Express / Prisma
 (BigInt.prototype as any).toJSON = function () {
   return this.toString();
@@ -65,5 +66,9 @@ app.use("/api/v1/courses", procedureRoutes);
 app.use("/api/v1/courses", resourceRoutes);
 app.use("/api/v1/courses", businessGuidanceRoutes);
 app.use("/api/v1/orders", orderRoutes);
-
+app.use("/api/v1/payments", paymentRoutes);
+app.use(
+  "/api/v1/enrollments",
+  enrollmentRoutes
+);
 export default app;

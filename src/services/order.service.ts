@@ -123,3 +123,78 @@ export const getOrderById = async (
 
     return order;
 };
+export const updateOrder = async (
+    orderId: string,
+    studentId: string,
+    data: {
+        status?: "PENDING" | "PAID" | "FAILED" | "CANCELLED" | "REFUNDED";
+        razorpayOrderId?: string;
+        appliedReferralCode?: string;
+    }
+) => {
+    const existingOrder = await prisma.order.findFirst({
+        where: {
+            id: orderId,
+            studentId,
+        },
+    });
+
+    if (!existingOrder) {
+        throw new Error("Order not found");
+    }
+
+    const updatedOrder = await prisma.order.update({
+        where: {
+            id: orderId,
+        },
+        data: {
+            ...(data.status !== undefined && {
+                status: data.status,
+            }),
+            ...(data.razorpayOrderId !== undefined && {
+                razorpayOrderId: data.razorpayOrderId,
+            }),
+            ...(data.appliedReferralCode !== undefined && {
+                appliedReferralCode: data.appliedReferralCode,
+            }),
+        },
+        include: {
+            course: {
+                select: {
+                    id: true,
+                    title: true,
+                    slug: true,
+                    thumbnailUrl: true,
+                },
+            },
+        },
+    });
+
+    return updatedOrder;
+};
+
+export const deleteOrder = async (
+    orderId: string,
+    studentId: string
+) => {
+    const existingOrder = await prisma.order.findFirst({
+        where: {
+            id: orderId,
+            studentId,
+        },
+    });
+    if (!existingOrder) {
+        throw new Error("Order not found");
+    }
+    if (existingOrder.status == "PAID") {
+        throw new Error("Paid order cannot be deleted");
+    }
+    await prisma.order.delete({
+        where: {
+            id: orderId,
+        },
+    });
+    return {
+        mesage: "Order deleted successfully",
+    };
+};

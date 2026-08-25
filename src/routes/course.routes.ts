@@ -7,10 +7,12 @@ import {
     updateCourseController,
     deleteCourseController,
     toggleCoursePublishController,
+    getCourseContentController,
 } from "../controllers/course.controller";
 
 import { authenticate } from "../middleware/auth.middleware";
 import { requireRoles } from "../middleware/role.middleware";
+import { requireEnrollment } from "../middleware/enrollment.middleware";
 
 const router = Router();
 
@@ -114,6 +116,44 @@ router.get(
     "/:id",
     getCourseByIdController
 );
+
+/**
+ * @swagger
+ * /api/v1/courses/{id}/content:
+ *   get:
+ *     summary: Get full protected course content
+ *     description: Returns complete course syllabus, video lessons, procedures, downloadable resources, business guidance, and student progress for actively enrolled students.
+ *     tags: [Courses]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Course ID
+ *     responses:
+ *       200:
+ *         description: Course content retrieved successfully
+ *       400:
+ *         description: Course ID is required
+ *       401:
+ *         description: Authentication required
+ *       403:
+ *         description: You are not enrolled in this course
+ *       404:
+ *         description: Course not found
+ *       500:
+ *         description: Server error
+ */
+router.get(
+    "/:id/content",
+    authenticate,
+    requireEnrollment,
+    getCourseContentController
+);
+
 
 /**
  * @swagger
