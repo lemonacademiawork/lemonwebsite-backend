@@ -6,12 +6,16 @@ const prisma = new PrismaClient();
 async function main() {
   console.log("🌱 Starting Lemon Academy database seeding...");
 
-  // 1. Create Trainer / Admin User
+  // 1. Create Trainer & Admin Users
   const passwordHash = await bcrypt.hash("Password123!", 10);
   
   const trainerUser = await prisma.user.upsert({
     where: { email: "trainer@lemonacademy.com" },
-    update: {},
+    update: {
+      passwordHash,
+      role: UserRole.TRAINER,
+      isActive: true,
+    },
     create: {
       name: "Chef & Craft Specialist Elena",
       email: "trainer@lemonacademy.com",
@@ -31,7 +35,24 @@ async function main() {
     },
   });
 
-  console.log(`✅ Trainer user created: ${trainerUser.email}`);
+  const adminUser = await prisma.user.upsert({
+    where: { email: "admin@lemonacademy.com" },
+    update: {
+      passwordHash,
+      role: UserRole.ADMIN,
+      isActive: true,
+    },
+    create: {
+      name: "Lemon Academy Admin",
+      email: "admin@lemonacademy.com",
+      passwordHash,
+      role: UserRole.ADMIN,
+      isActive: true,
+    },
+  });
+
+  console.log(`✅ Trainer user ready: ${trainerUser.email}`);
+  console.log(`✅ Admin user ready: ${adminUser.email}`);
 
   // 2. Create Categories
   const categoriesData = [
