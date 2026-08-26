@@ -1,4 +1,5 @@
 import express from "express";
+import routes from "./routes";
 import cors from "cors";
 import authRoutes from "./routes/auth.routes";
 import { setupSwagger } from "./config/swagger";
@@ -71,4 +72,5 @@ app.use(
   "/api/v1/enrollments",
   enrollmentRoutes
 );
+app.use("/api/v1", routes);
 export default app;
