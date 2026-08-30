@@ -76,6 +76,10 @@ const options: swaggerJsdoc.Options = {
         name: "Procedures",
         description: "Course step-by-step procedures APIs",
       },
+      {
+        name: "Certificates",
+        description: "Student course completion certificate APIs",
+      },
     ],
   },
   apis: [

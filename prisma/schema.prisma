@@ -354,23 +354,6 @@ model Progress {
   @@map("progress")
 }
 
-model Certificate {
-  id                String   @id @default(uuid())
-  studentId         String   @map("student_id")
-  courseId          String   @map("course_id")
-  certificateNumber String   @unique @map("certificate_number")
-  verificationCode  String   @unique @map("verification_code")
-  issueDate         DateTime @default(now()) @map("issue_date")
-  pdfUrl            String?  @map("pdf_url")
-  createdAt         DateTime @default(now()) @map("created_at")
-  updatedAt         DateTime @updatedAt @map("updated_at")
-
-  student User   @relation(fields: [studentId], references: [id], onDelete: Restrict)
-  course  Course @relation(fields: [courseId], references: [id], onDelete: Restrict)
-
-  @@unique([studentId, courseId])
-  @@map("certificates")
-}
 
 model GallerySubmission {
   id              String        @id @default(uuid())
