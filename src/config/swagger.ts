@@ -53,8 +53,16 @@ const options: swaggerJsdoc.Options = {
         description: "User profile APIs",
       },
       {
+        name: "Students",
+        description: "Student portal, progress, and dashboard APIs",
+      },
+      {
         name: "Trainers",
         description: "Trainer profile and course management APIs",
+      },
+      {
+        name: "Admin",
+        description: "Administrative dashboard, user management, enrollment, and moderation APIs",
       },
       {
         name: "Courses",
@@ -81,8 +89,28 @@ const options: swaggerJsdoc.Options = {
         description: "Course step-by-step procedures APIs",
       },
       {
+        name: "Enrollments",
+        description: "Student course enrollment APIs",
+      },
+      {
+        name: "Orders",
+        description: "Course purchase order APIs",
+      },
+      {
+        name: "Payments",
+        description: "Payment transactions and verification APIs",
+      },
+      {
         name: "Certificates",
         description: "Student course completion certificate APIs",
+      },
+      {
+        name: "Blogs",
+        description: "Blog publishing and article APIs",
+      },
+      {
+        name: "Blog Categories",
+        description: "Blog category management APIs",
       },
     ],
   },
