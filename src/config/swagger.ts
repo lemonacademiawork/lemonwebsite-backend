@@ -53,6 +53,10 @@ const options: swaggerJsdoc.Options = {
         description: "User profile APIs",
       },
       {
+        name: "Trainers",
+        description: "Trainer profile and course management APIs",
+      },
+      {
         name: "Courses",
         description: "Course management APIs",
       },

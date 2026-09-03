@@ -11,7 +11,9 @@ import {
 
 import { getMe } from "../controllers/auth.controller";
 import { authenticate } from "../middleware/auth.middleware";
-
+import {
+    forgotPasswordController,
+} from "../controllers/auth.controller";
 const router = Router();
 
 /**
@@ -172,4 +174,38 @@ router.get("/google", googleLogin);
  */
 router.get("/google/callback", googleCallback);
 router.get("/google", googleLogin);
+/**
+ * @swagger
+ * /api/v1/auth/forgot-password:
+ *   post:
+ *     summary: Generate a password reset token
+ *     tags:
+ *       - Authentication
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: student@example.com
+ *     responses:
+ *       200:
+ *         description: Password reset token generated successfully
+ *       400:
+ *         description: Email is required
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Server error
+ */
+router.post(
+    "/forgot-password",
+    forgotPasswordController
+);
 export default router;

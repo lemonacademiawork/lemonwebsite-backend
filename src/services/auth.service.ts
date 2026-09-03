@@ -403,9 +403,6 @@ export const refreshUser = async (
     };
 };
 
-/* =========================================================
-   LOGOUT
-========================================================= */
 
 export const logoutUser = async (
     userId: string
@@ -431,5 +428,41 @@ export const logoutUser = async (
 
     return {
         message: "Logged out successfully",
+    };
+};
+export const forgotPassword = async (email: string) => {
+    const user = await prisma.user.findUnique({
+        where: {
+            email,
+        },
+    });
+
+    if (!user) {
+        throw new Error("User not found");
+    }
+
+    const resetToken = crypto.randomBytes(32).toString("hex");
+
+    const resetTokenHash = await bcrypt.hash(
+        resetToken,
+        10
+    );
+
+    const resetPasswordExpiresAt = new Date(
+        Date.now() + 15 * 60 * 1000
+    );
+
+    await prisma.user.update({
+        where: {
+            id: user.id,
+        },
+        data: {
+            resetPasswordToken: resetTokenHash,
+            resetPasswordExpiresAt,
+        },
+    });
+
+    return {
+        resetToken,
     };
 };

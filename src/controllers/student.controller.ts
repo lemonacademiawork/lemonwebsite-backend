@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
-import { getMyProfile, updateMyProfile, getMyEnrollments, getMyPayments, getMyDashboard, getMyProgress, updateMyProgress, getMyNotifications } from "../services/student.service";
+import { getMyProfile, updateMyProfile, getMyEnrollments, getMyPayments, getMyDashboard, getMyProgress, updateMyProgress, getMyNotifications, markNotificationAsRead } from "../services/student.service";
 import { getMyCertificates } from "../services/certificate.service";
+
 export const getMyProfileController = async (
     req: Request,
     res: Response
@@ -308,6 +309,83 @@ export const getMyCertificatesController = async (
         return res.status(500).json({
             success: false,
             message: "Failed to fetch certificates",
+        });
+    }
+};
+
+export const getMyNotificationsController = async (
+    req: Request,
+    res: Response
+) => {
+    try {
+        const userId = req.user?.userId;
+
+        if (!userId) {
+            return res.status(401).json({
+                success: false,
+                message: "Authentication required",
+            });
+        }
+
+        const notifications = await getMyNotifications(userId);
+
+        return res.status(200).json({
+            success: true,
+            message: "Notifications fetched successfully",
+            data: notifications,
+        });
+    } catch (error) {
+        console.error("Get my notifications error:", error);
+
+        return res.status(500).json({
+            success: false,
+            message: "Failed to fetch notifications",
+        });
+    }
+};
+export const markNotificationAsReadController = async (
+    req: Request,
+    res: Response
+) => {
+    try {
+        const userId = req.user?.userId;
+        const { notificationId } = req.params;
+
+        if (!userId) {
+            return res.status(401).json({
+                success: false,
+                message: "Authentication required",
+            });
+        }
+
+        const notification = await markNotificationAsRead(
+            userId,
+            notificationId
+        );
+
+        return res.status(200).json({
+            success: true,
+            message: "Notification marked as read",
+            data: notification,
+        });
+    } catch (error) {
+        const message =
+            error instanceof Error
+                ? error.message
+                : "Failed to mark notification as read";
+
+        if (message === "Notification not found") {
+            return res.status(404).json({
+                success: false,
+                message,
+            });
+        }
+
+        console.error("Mark notification as read error:", error);
+
+        return res.status(500).json({
+            success: false,
+            message: "Failed to mark notification as read",
         });
     }
 };

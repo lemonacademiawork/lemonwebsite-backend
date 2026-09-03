@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { authenticate } from "../middleware/auth.middleware";
-import { createCertificateController } from "../controllers/certificate.controller";
+import { createCertificateController, verifyCertificateController } from "../controllers/certificate.controller";
 
 const router = Router();
 
@@ -37,5 +37,33 @@ const router = Router();
  *         description: Server error
  */
 router.post("/", authenticate, createCertificateController);
-
+/**
+ * @swagger
+ * /api/v1/certificates/verify/{verificationCode}:
+ *   get:
+ *     summary: Verify a certificate
+ *     tags:
+ *       - Certificates
+ *     parameters:
+ *       - in: path
+ *         name: verificationCode
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Certificate verification code
+ *         example: VERIFY-12345
+ *     responses:
+ *       200:
+ *         description: Certificate verified successfully
+ *       400:
+ *         description: Verification code is required
+ *       404:
+ *         description: Invalid certificate
+ *       500:
+ *         description: Server error
+ */
+router.get(
+    "/verify/:verificationCode",
+    verifyCertificateController
+);
 export default router;

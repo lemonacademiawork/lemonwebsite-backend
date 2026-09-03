@@ -1,7 +1,7 @@
 import { Router } from "express";
 import {
     getMe,
-    updateMe,
+    updateMe, changePasswordController
 } from "../controllers/user.controller";
 import { authenticate } from "../middleware/auth.middleware";
 
@@ -63,5 +63,46 @@ router.get("/me", authenticate, getMe);
  *         description: User or student profile not found
  */
 router.patch("/me", authenticate, updateMe);
-
+/**
+ * @swagger
+ * /api/v1/users/me/password:
+ *   patch:
+ *     summary: Change current user's password
+ *     tags:
+ *       - Users
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - currentPassword
+ *               - newPassword
+ *             properties:
+ *               currentPassword:
+ *                 type: string
+ *                 example: OldPassword123
+ *               newPassword:
+ *                 type: string
+ *                 example: NewPassword123
+ *     responses:
+ *       200:
+ *         description: Password changed successfully
+ *       400:
+ *         description: Invalid current password or request
+ *       401:
+ *         description: Authentication required
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Server error
+ */
+router.patch(
+    "/me/password",
+    authenticate,
+    changePasswordController
+);
 export default router;

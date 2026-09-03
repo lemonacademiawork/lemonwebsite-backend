@@ -12,10 +12,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// =============================================================================
-// ENUMS
-// =============================================================================
-
 enum UserRole {
   ADMIN
   TRAINER
@@ -81,16 +77,18 @@ enum BlogStatus {
 // =============================================================================
 
 model User {
-  id               String   @id @default(uuid())
-  name             String?
-  email            String   @unique
-  passwordHash     String   @map("password_hash")
-  googleId         String?  @unique @map("google_id")
-  role             UserRole @default(STUDENT)
-  isActive         Boolean  @default(true) @map("is_active")
-  refreshTokenHash String?  @map("refresh_token_hash")
-  createdAt        DateTime @default(now()) @map("created_at")
-  updatedAt        DateTime @updatedAt @map("updated_at")
+  id                     String    @id @default(uuid())
+  name                   String?
+  email                  String    @unique
+  passwordHash           String    @map("password_hash")
+  googleId               String?   @unique @map("google_id")
+  role                   UserRole  @default(STUDENT)
+  isActive               Boolean   @default(true) @map("is_active")
+  refreshTokenHash       String?   @map("refresh_token_hash")
+  resetPasswordToken     String?   @map("reset_password_token")
+  resetPasswordExpiresAt DateTime? @map("reset_password_expires_at")
+  createdAt              DateTime  @default(now()) @map("created_at")
+  updatedAt              DateTime  @updatedAt @map("updated_at")
 
   studentProfile     StudentProfile?
   trainerProfile     TrainerProfile?
@@ -136,8 +134,7 @@ model StudentProfile {
 model TrainerProfile {
   id          String   @id @default(uuid())
   userId      String   @unique @map("user_id")
-  firstName   String   @map("first_name")
-  lastName    String   @map("last_name")
+  name         String
   phone       String?
   avatarUrl   String?  @map("avatar_url")
   bio         String?
@@ -354,7 +351,6 @@ model Progress {
   @@map("progress")
 }
 
-
 model GallerySubmission {
   id              String        @id @default(uuid())
   studentId       String        @map("student_id")
@@ -510,4 +506,22 @@ model SystemSetting {
   updatedAt    DateTime @updatedAt @map("updated_at")
 
   @@map("system_settings")
+}
+
+model Certificate {
+  id                String   @id @default(uuid())
+  studentId         String   @map("student_id")
+  courseId          String   @map("course_id")
+  certificateNumber String   @unique @map("certificate_number")
+  verificationCode  String   @unique @map("verification_code")
+  issueDate         DateTime @default(now()) @map("issue_date")
+  pdfUrl            String?  @map("pdf_url")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  student User   @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  course  Course @relation(fields: [courseId], references: [id], onDelete: Restrict)
+
+  @@unique([studentId, courseId])
+  @@map("certificates")
 }

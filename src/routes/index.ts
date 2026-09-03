@@ -4,6 +4,7 @@ import enrollmentRoutes from "./enrollment.routes";
 import blogRoutes from "./blog.routes";
 import studentRoutes from "./student.routes";
 import certificateRoutes from "./certificate.routes";
+import trainerRoutes from "./trainer.routes";
 
 const router = Router();
 
@@ -12,5 +13,5 @@ router.use("/enrollments", enrollmentRoutes);
 router.use("/blogs", blogRoutes);
 router.use("/students", studentRoutes);
 router.use("/certificates", certificateRoutes);
-
+router.use("/trainers", trainerRoutes);
 export default router;

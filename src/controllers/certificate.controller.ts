@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import {
   createCertificate,
-  getMyCertificates,
+  getMyCertificates, verifyCertificate
 } from "../services/certificate.service";
 
 export const createCertificateController = async (
@@ -88,6 +88,50 @@ export const getMyCertificatesController = async (
     return res.status(500).json({
       success: false,
       message: "Failed to fetch certificates",
+    });
+  }
+};
+export const verifyCertificateController = async (
+  req: Request,
+  res: Response
+) => {
+  try {
+    const { verificationCode } = req.params;
+
+    if (!verificationCode) {
+      return res.status(400).json({
+        success: false,
+        message: "Verification code is required",
+      });
+    }
+
+    const certificate = await verifyCertificate(
+      verificationCode
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Certificate verified successfully",
+      data: certificate,
+    });
+  } catch (error) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Failed to verify certificate";
+
+    if (message === "Certificate not found") {
+      return res.status(404).json({
+        success: false,
+        message: "Invalid certificate",
+      });
+    }
+
+    console.error("Verify certificate error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to verify certificate",
     });
   }
 };

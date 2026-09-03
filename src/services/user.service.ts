@@ -1,5 +1,5 @@
 import { prisma } from "../config/database";
-
+import bcrypt from "bcrypt";
 export const getCurrentUser = async (userId: string) => {
     const user = await prisma.user.findUnique({
         where: {
@@ -84,4 +84,44 @@ export const updateCurrentUser = async (
     });
 
     return updatedProfile;
+};
+export const changePassword = async (
+    userId: string,
+    currentPassword: string,
+    newPassword: string
+) => {
+    const user = await prisma.user.findUnique({
+        where: {
+            id: userId,
+        },
+    });
+
+    if (!user) {
+        throw new Error("User not found");
+    }
+
+    const isCurrentPasswordCorrect = await bcrypt.compare(
+        currentPassword,
+        user.passwordHash
+    );
+
+    if (!isCurrentPasswordCorrect) {
+        throw new Error("Current password is incorrect");
+    }
+
+    const newPasswordHash = await bcrypt.hash(
+        newPassword,
+        10
+    );
+
+    await prisma.user.update({
+        where: {
+            id: userId,
+        },
+        data: {
+            passwordHash: newPasswordHash,
+        },
+    });
+
+    return true;
 };

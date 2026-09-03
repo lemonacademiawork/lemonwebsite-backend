@@ -3,7 +3,7 @@ import { authenticate } from "../middleware/auth.middleware";
 import {
     getMyProfileController,
     updateMyProfileController,
-    getMyEnrollmentsController, getMyPaymentsController, getMyDashboardController, getMyProgressController, updateMyProgressController, getMyCertificatesController
+    getMyEnrollmentsController, getMyPaymentsController, getMyDashboardController, getMyProgressController, updateMyProgressController, getMyCertificatesController, getMyNotificationsController, markNotificationAsReadController,
 } from "../controllers/student.controller";
 
 const router = Router();
@@ -224,5 +224,56 @@ router.get(
     "/me/certificates",
     authenticate,
     getMyCertificatesController
+);
+/**
+ * @swagger
+ * /api/v1/students/me/notifications:
+ *   get:
+ *     summary: Get my notifications
+ *     tags: [Students]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Notifications fetched successfully
+ *       401:
+ *         description: Authentication required
+ *       500:
+ *         description: Server error
+ */
+router.get(
+    "/me/notifications",
+    authenticate,
+    getMyNotificationsController
+);
+/**
+ * @swagger
+ * /api/v1/students/me/notifications/{notificationId}/read:
+ *   patch:
+ *     summary: Mark a notification as read
+ *     tags: [Students]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: notificationId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Notification ID
+ *     responses:
+ *       200:
+ *         description: Notification marked as read
+ *       401:
+ *         description: Authentication required
+ *       404:
+ *         description: Notification not found
+ *       500:
+ *         description: Server error
+ */
+router.patch(
+    "/me/notifications/:notificationId/read",
+    authenticate,
+    markNotificationAsReadController
 );
 export default router;

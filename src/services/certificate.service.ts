@@ -75,3 +75,28 @@ export const createCertificate = async (
 
   return certificate;
 };
+export const verifyCertificate = async (
+  verificationCode: string
+) => {
+  const certificate = await prisma.certificate.findUnique({
+    where: {
+      verificationCode,
+    },
+    include: {
+      course: true,
+      student: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+        },
+      },
+    },
+  });
+
+  if (!certificate) {
+    throw new Error("Certificate not found");
+  }
+
+  return certificate;
+};
