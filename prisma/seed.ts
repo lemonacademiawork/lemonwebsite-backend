@@ -24,8 +24,7 @@ async function main() {
       isActive: true,
       trainerProfile: {
         create: {
-          firstName: "Elena",
-          lastName: "Rostova",
+          name: "Elena Rostova",
           expertise: "Master Baker & Craft Artisan",
           designation: "Head Instructor at Lemon Academy",
           bio: "Passionate artisan with over 12 years of experience in creative arts, gourmet baking, and handmade soap creation.",
