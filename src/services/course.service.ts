@@ -359,3 +359,351 @@ export const getCourseContent = async (
         progress,
     };
 };
+
+export const getCourseBySlug = async (slug: string) => {
+    const course = await prisma.course.findUnique({
+        where: {
+            slug,
+        },
+    });
+
+    if (!course) {
+        throw new Error("Course not found");
+    }
+
+    return course;
+};
+
+export const getCourseEnrollmentStatus = async (
+    courseId: string,
+    studentId: string
+) => {
+    const course = await prisma.course.findUnique({
+        where: {
+            id: courseId,
+        },
+        select: {
+            id: true,
+            title: true,
+            slug: true,
+        },
+    });
+
+    if (!course) {
+        throw new Error("Course not found");
+    }
+
+    const enrollment = await prisma.enrollment.findFirst({
+        where: {
+            studentId,
+            courseId,
+        },
+        select: {
+            id: true,
+            status: true,
+            source: true,
+            enrolledAt: true,
+            createdAt: true,
+        },
+    });
+
+    return {
+        courseId: course.id,
+        courseTitle: course.title,
+        enrolled: !!enrollment && enrollment.status === "ACTIVE",
+        enrollment: enrollment || null,
+    };
+};
+
+export const getCourseProgress = async (
+    courseId: string,
+    studentId: string
+) => {
+    const course = await prisma.course.findUnique({
+        where: {
+            id: courseId,
+        },
+        select: {
+            id: true,
+            title: true,
+        },
+    });
+
+    if (!course) {
+        throw new Error("Course not found");
+    }
+
+    const [totalLessons, completedProgressList, allProgress, enrollment] =
+        await Promise.all([
+            prisma.lesson.count({
+                where: {
+                    module: {
+                        courseId,
+                        isPublished: true,
+                    },
+                    isPublished: true,
+                },
+            }),
+            prisma.progress.findMany({
+                where: {
+                    studentId,
+                    courseId,
+                    isCompleted: true,
+                },
+            }),
+            prisma.progress.findMany({
+                where: {
+                    studentId,
+                    courseId,
+                },
+                include: {
+                    lesson: {
+                        select: {
+                            id: true,
+                            title: true,
+                            orderIndex: true,
+                            durationSeconds: true,
+                        },
+                    },
+                },
+                orderBy: {
+                    updatedAt: "desc",
+                },
+            }),
+            prisma.enrollment.findFirst({
+                where: {
+                    studentId,
+                    courseId,
+                },
+                select: {
+                    id: true,
+                    status: true,
+                    enrolledAt: true,
+                },
+            }),
+        ]);
+
+    const completedLessons = completedProgressList.length;
+    const progressPercentage =
+        totalLessons > 0
+            ? Math.min(
+                  100,
+                  Math.round((completedLessons / totalLessons) * 100)
+              )
+            : 0;
+    const isCompleted =
+        totalLessons > 0 && completedLessons >= totalLessons;
+
+    return {
+        courseId: course.id,
+        courseTitle: course.title,
+        totalLessons,
+        completedLessons,
+        progressPercentage,
+        isCompleted,
+        enrollment: enrollment || null,
+        progress: allProgress,
+    };
+};
+
+interface ReorderModuleItem {
+    id: string;
+    orderIndex?: number;
+    order?: number;
+}
+
+export const reorderCourseModules = async (
+    courseId: string,
+    userId: string,
+    userRole: string,
+    modules: ReorderModuleItem[]
+) => {
+    const course = await prisma.course.findUnique({
+        where: { id: courseId },
+    });
+
+    if (!course) {
+        throw new Error("Course not found");
+    }
+
+    if (userRole !== "ADMIN" && course.trainerId !== userId) {
+        throw new Error("You are not allowed to manage modules for this course");
+    }
+
+    if (!Array.isArray(modules) || modules.length === 0) {
+        throw new Error("Modules array is required and must not be empty");
+    }
+
+    const moduleIds = modules.map((m) => m.id);
+    if (new Set(moduleIds).size !== moduleIds.length) {
+        throw new Error("Duplicate module IDs found in reorder list");
+    }
+
+    const orderIndices = modules.map((m) => {
+        const val = m.orderIndex ?? m.order;
+        if (typeof val !== "number" || val <= 0) {
+            throw new Error(`Invalid orderIndex for module ${m.id}`);
+        }
+        return val;
+    });
+
+    if (new Set(orderIndices).size !== orderIndices.length) {
+        throw new Error("Duplicate order positions found in reorder list");
+    }
+
+    const existingModules = await prisma.courseModule.findMany({
+        where: {
+            id: { in: moduleIds },
+            courseId,
+        },
+    });
+
+    if (existingModules.length !== moduleIds.length) {
+        throw new Error("One or more modules do not belong to this course");
+    }
+
+    await prisma.$transaction(async (tx) => {
+        for (let i = 0; i < modules.length; i++) {
+            await tx.courseModule.update({
+                where: { id: modules[i].id },
+                data: { orderIndex: -1 * (i + 1000) },
+            });
+        }
+
+        for (const item of modules) {
+            const targetIndex = item.orderIndex ?? item.order;
+            await tx.courseModule.update({
+                where: { id: item.id },
+                data: { orderIndex: targetIndex },
+            });
+        }
+    });
+
+    const updatedModules = await prisma.courseModule.findMany({
+        where: { courseId },
+        orderBy: { orderIndex: "asc" },
+        include: {
+            lessons: {
+                orderBy: { orderIndex: "asc" },
+            },
+        },
+    });
+
+    return updatedModules;
+};
+
+interface ReorderLessonItem {
+    id: string;
+    orderIndex?: number;
+    order?: number;
+    moduleId?: string;
+}
+
+export const reorderCourseLessons = async (
+    courseId: string,
+    userId: string,
+    userRole: string,
+    lessons: ReorderLessonItem[]
+) => {
+    const course = await prisma.course.findUnique({
+        where: { id: courseId },
+    });
+
+    if (!course) {
+        throw new Error("Course not found");
+    }
+
+    if (userRole !== "ADMIN" && course.trainerId !== userId) {
+        throw new Error("You are not allowed to manage lessons for this course");
+    }
+
+    if (!Array.isArray(lessons) || lessons.length === 0) {
+        throw new Error("Lessons array is required and must not be empty");
+    }
+
+    const lessonIds = lessons.map((l) => l.id);
+    if (new Set(lessonIds).size !== lessonIds.length) {
+        throw new Error("Duplicate lesson IDs found in reorder list");
+    }
+
+    const existingLessons = await prisma.lesson.findMany({
+        where: {
+            id: { in: lessonIds },
+            module: {
+                courseId,
+            },
+        },
+        include: {
+            module: true,
+        },
+    });
+
+    if (existingLessons.length !== lessonIds.length) {
+        throw new Error("One or more lessons do not belong to this course");
+    }
+
+    const lessonsByModule: {
+        [moduleId: string]: { id: string; orderIndex: number }[];
+    } = {};
+
+    for (const item of lessons) {
+        const targetIndex = item.orderIndex ?? item.order;
+        if (typeof targetIndex !== "number" || targetIndex <= 0) {
+            throw new Error(`Invalid orderIndex for lesson ${item.id}`);
+        }
+
+        const existing = existingLessons.find((l) => l.id === item.id);
+        const targetModuleId = item.moduleId || existing?.moduleId;
+
+        if (targetModuleId) {
+            if (!lessonsByModule[targetModuleId]) {
+                lessonsByModule[targetModuleId] = [];
+            }
+            lessonsByModule[targetModuleId].push({
+                id: item.id,
+                orderIndex: targetIndex,
+            });
+        }
+    }
+
+    for (const modId in lessonsByModule) {
+        const indices = lessonsByModule[modId].map((l) => l.orderIndex);
+        if (new Set(indices).size !== indices.length) {
+            throw new Error(
+                "Duplicate lesson order positions found within the same module"
+            );
+        }
+    }
+
+    await prisma.$transaction(async (tx) => {
+        for (let i = 0; i < lessons.length; i++) {
+            await tx.lesson.update({
+                where: { id: lessons[i].id },
+                data: { orderIndex: -1 * (i + 1000) },
+            });
+        }
+
+        for (const item of lessons) {
+            const targetIndex = item.orderIndex ?? item.order;
+            await tx.lesson.update({
+                where: { id: item.id },
+                data: {
+                    orderIndex: targetIndex,
+                    ...(item.moduleId ? { moduleId: item.moduleId } : {}),
+                },
+            });
+        }
+    });
+
+    const updatedModules = await prisma.courseModule.findMany({
+        where: { courseId },
+        orderBy: { orderIndex: "asc" },
+        include: {
+            lessons: {
+                orderBy: { orderIndex: "asc" },
+            },
+        },
+    });
+
+    return updatedModules;
+};

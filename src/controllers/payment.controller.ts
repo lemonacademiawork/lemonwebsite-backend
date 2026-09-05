@@ -1,5 +1,142 @@
 import { Request, Response } from "express";
-import { createPayment, getPayments, getPaymentById } from "../services/payment.service";
+import {
+    createPayment,
+    getPayments,
+    getPaymentById,
+    createRazorpayOrder,
+    processRazorpayWebhook,
+} from "../services/payment.service";
+
+export const handleRazorpayWebhookController = async (
+    req: Request,
+    res: Response
+) => {
+    try {
+        const signature = req.headers["x-razorpay-signature"] as string;
+
+        if (!signature) {
+            return res.status(400).json({
+                success: false,
+                message: "Missing x-razorpay-signature header",
+            });
+        }
+
+        const result = await processRazorpayWebhook(req.body, signature);
+
+        return res.status(200).json({
+            success: true,
+            message: "Webhook processed successfully",
+            data: result,
+        });
+    } catch (error) {
+        const message =
+            error instanceof Error
+                ? error.message
+                : "Failed to process webhook";
+
+        if (
+            message === "Invalid webhook signature" ||
+            message === "Webhook payload missing event type" ||
+            message === "Razorpay webhook secret is not configured on server"
+        ) {
+            return res.status(400).json({
+                success: false,
+                message,
+            });
+        }
+
+        console.error("Razorpay webhook error:", error);
+
+        return res.status(500).json({
+            success: false,
+            message: "Internal server error while processing webhook",
+        });
+    }
+};
+
+export const createRazorpayOrderController = async (
+    req: Request,
+    res: Response
+) => {
+    try {
+        if (!req.user) {
+            return res.status(401).json({
+                success: false,
+                message: "Authentication required",
+            });
+        }
+
+        const { courseId, orderId, appliedReferralCode } = req.body;
+
+        if (!courseId && !orderId) {
+            return res.status(400).json({
+                success: false,
+                message: "Either courseId or orderId is required",
+            });
+        }
+
+        const razorpayOrderData = await createRazorpayOrder(
+            req.user.userId,
+            {
+                courseId,
+                orderId,
+                appliedReferralCode,
+            }
+        );
+
+        return res.status(201).json({
+            success: true,
+            message: "Razorpay order created successfully",
+            data: razorpayOrderData,
+        });
+    } catch (error) {
+        const message =
+            error instanceof Error
+                ? error.message
+                : "Failed to create Razorpay order";
+
+        if (
+            message === "Course not found" ||
+            message === "Student not found" ||
+            message === "Order not found" ||
+            message === "Invalid referral code"
+        ) {
+            return res.status(404).json({
+                success: false,
+                message,
+            });
+        }
+
+        if (
+            message === "Student is already enrolled in this course" ||
+            message === "Order is already paid"
+        ) {
+            return res.status(409).json({
+                success: false,
+                message,
+            });
+        }
+
+        if (
+            message === "Course ID is required" ||
+            message === "You cannot apply your own referral code"
+        ) {
+            return res.status(400).json({
+                success: false,
+                message,
+            });
+        }
+
+        console.error("Create Razorpay order error:", error);
+
+        return res.status(500).json({
+            success: false,
+            message: message.startsWith("Razorpay error:")
+                ? message
+                : "Failed to create Razorpay order",
+        });
+    }
+};
 
 export const createPaymentController = async (
     req: Request,

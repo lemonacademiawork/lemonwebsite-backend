@@ -7,7 +7,10 @@ import studentRoutes from "./student.routes";
 import certificateRoutes from "./certificate.routes";
 import trainerRoutes from "./trainer.routes";
 import adminRoutes from "./admin.routes";
-
+import reviewRoutes from "./review.routes";
+import galleryRoutes from "./gallery.routes";
+import referralRoutes from "./referral.routes";
+import categoryRoutes from "./category.routes";
 const router = Router();
 
 router.use("/courses", courseRoutes);
@@ -18,5 +21,8 @@ router.use("/students", studentRoutes);
 router.use("/certificates", certificateRoutes);
 router.use("/trainers", trainerRoutes);
 router.use("/admin", adminRoutes);
-
+router.use("/reviews", reviewRoutes);
+router.use("/gallery", galleryRoutes);
+router.use("/categories", categoryRoutes);
+router.use("/referrals", referralRoutes);
 export default router;

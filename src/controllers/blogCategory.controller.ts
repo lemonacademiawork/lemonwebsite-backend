@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import {
-    createBlogCategory, getBlogCategories, getBlogCategoryById, updateBlogCategory, deleteBlogCategory
+    createBlogCategory, getBlogCategories, getBlogCategoryById, getBlogCategoryBySlug, updateBlogCategory, deleteBlogCategory
 } from "../services/blogCategory.service";
 
 export const createBlogCategoryController = async (
@@ -73,6 +73,41 @@ export const getBlogCategoriesController = async (
         });
     }
 };
+
+export const getBlogCategoryBySlugController = async (
+    req: Request,
+    res: Response
+) => {
+    try {
+        const { slug } = req.params;
+        if (!slug) {
+            return res.status(400).json({
+                success: false,
+                message: "Category slug is required",
+            });
+        }
+        const category = await getBlogCategoryBySlug(slug);
+        return res.status(200).json({
+            success: true,
+            message: "Blog category fetched successfully",
+            data: category,
+        });
+    } catch (error) {
+        const message = error instanceof Error ? error.message : "Failed to fetch blog category";
+        if (message === "Blog category not found") {
+            return res.status(404).json({
+                success: false,
+                message,
+            });
+        }
+        console.error("Get blog category by slug error:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Failed to fetch blog category",
+        });
+    }
+};
+
 export const getBlogCategoryByIdController = async (
     req: Request,
     res: Response

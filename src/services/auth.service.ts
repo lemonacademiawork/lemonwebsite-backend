@@ -466,3 +466,95 @@ export const forgotPassword = async (email: string) => {
         resetToken,
     };
 };
+
+/* =========================================================
+   RESET PASSWORD
+========================================================= */
+
+interface ResetPasswordData {
+    token: string;
+    newPassword: string;
+    email?: string;
+}
+
+export const resetPassword = async (data: ResetPasswordData) => {
+    const { token, newPassword, email } = data;
+
+    if (!token || typeof token !== "string" || !token.trim()) {
+        throw new Error("Reset token is required");
+    }
+
+    if (!newPassword || typeof newPassword !== "string" || newPassword.length < 6) {
+        throw new Error("Password must be at least 6 characters long");
+    }
+
+    let matchedUser = null;
+
+    if (email && typeof email === "string" && email.trim()) {
+        const user = await prisma.user.findUnique({
+            where: { email: email.trim().toLowerCase() },
+        });
+
+        if (!user || !user.resetPasswordToken || !user.resetPasswordExpiresAt) {
+            throw new Error("Invalid or expired reset token");
+        }
+
+        if (user.resetPasswordExpiresAt < new Date()) {
+            throw new Error("Reset token has expired");
+        }
+
+        const isTokenValid = await bcrypt.compare(token.trim(), user.resetPasswordToken);
+        if (!isTokenValid) {
+            throw new Error("Invalid or expired reset token");
+        }
+
+        matchedUser = user;
+    } else {
+        const activeUsers = await prisma.user.findMany({
+            where: {
+                resetPasswordExpiresAt: {
+                    gt: new Date(),
+                },
+                resetPasswordToken: {
+                    not: null,
+                },
+            },
+        });
+
+        for (const user of activeUsers) {
+            if (user.resetPasswordToken) {
+                const isTokenValid = await bcrypt.compare(token.trim(), user.resetPasswordToken);
+                if (isTokenValid) {
+                    matchedUser = user;
+                    break;
+                }
+            }
+        }
+
+        if (!matchedUser) {
+            throw new Error("Invalid or expired reset token");
+        }
+    }
+
+    if (!matchedUser.isActive) {
+        throw new Error("Your account is inactive");
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    await prisma.user.update({
+        where: {
+            id: matchedUser.id,
+        },
+        data: {
+            passwordHash: hashedPassword,
+            resetPasswordToken: null,
+            resetPasswordExpiresAt: null,
+            refreshTokenHash: null,
+        },
+    });
+
+    return {
+        message: "Password reset successful. You can now log in with your new password.",
+    };
+};

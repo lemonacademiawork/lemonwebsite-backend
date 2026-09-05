@@ -1,7 +1,9 @@
 import { Request, Response } from "express";
 import {
   createCertificate,
-  getMyCertificates, verifyCertificate
+  getMyCertificates,
+  getCertificateByCourse,
+  verifyCertificate,
 } from "../services/certificate.service";
 
 export const createCertificateController = async (
@@ -88,6 +90,63 @@ export const getMyCertificatesController = async (
     return res.status(500).json({
       success: false,
       message: "Failed to fetch certificates",
+    });
+  }
+};
+
+export const getCertificateByCourseController = async (
+  req: Request,
+  res: Response
+) => {
+  try {
+    const studentId = req.user?.userId;
+
+    if (!studentId) {
+      return res.status(401).json({
+        success: false,
+        message: "Authentication required",
+      });
+    }
+
+    const { courseId } = req.params;
+
+    if (!courseId) {
+      return res.status(400).json({
+        success: false,
+        message: "Course ID is required",
+      });
+    }
+
+    const certificate = await getCertificateByCourse(studentId, courseId);
+
+    return res.status(200).json({
+      success: true,
+      message: "Certificate fetched successfully",
+      data: certificate,
+    });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Failed to fetch certificate";
+
+    if (message === "Course not found") {
+      return res.status(404).json({
+        success: false,
+        message: "Course not found",
+      });
+    }
+
+    if (message === "Certificate not found") {
+      return res.status(404).json({
+        success: false,
+        message: "Certificate not found for this course",
+      });
+    }
+
+    console.error("Get certificate by course error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch certificate",
     });
   }
 };

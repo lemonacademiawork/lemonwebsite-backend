@@ -41,6 +41,41 @@ const options: swaggerJsdoc.Options = {
             },
           },
         },
+        Category: {
+          type: "object",
+          properties: {
+            id: {
+              type: "string",
+              example: "550e8400-e29b-41d4-a716-446655440000",
+            },
+            name: {
+              type: "string",
+              example: "Crochet Basics",
+            },
+            slug: {
+              type: "string",
+              example: "crochet-basics",
+            },
+            description: {
+              type: "string",
+              nullable: true,
+              example: "Foundational techniques and stitch patterns for beginners.",
+            },
+            imageUrl: {
+              type: "string",
+              nullable: true,
+              example: "https://images.unsplash.com/photo-1584992236310-6edddc08acff",
+            },
+            createdAt: {
+              type: "string",
+              format: "date-time",
+            },
+            updatedAt: {
+              type: "string",
+              format: "date-time",
+            },
+          },
+        },
       },
     },
     tags: [
@@ -67,6 +102,10 @@ const options: swaggerJsdoc.Options = {
       {
         name: "Courses",
         description: "Course management APIs",
+      },
+      {
+        name: "Categories",
+        description: "Course category management APIs",
       },
       {
         name: "Course Modules",
@@ -111,6 +150,18 @@ const options: swaggerJsdoc.Options = {
       {
         name: "Blog Categories",
         description: "Blog category management APIs",
+      },
+      {
+        name: "Reviews",
+        description: "Course ratings, reviews, and moderation APIs",
+      },
+      {
+        name: "Gallery",
+        description: "Student work showcase, project submissions, and admin moderation APIs",
+      },
+      {
+        name: "Referrals",
+        description: "Student referral system and commission tracking APIs",
       },
     ],
   },

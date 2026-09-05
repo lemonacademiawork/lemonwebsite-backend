@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { registerUser, loginUser, refreshUser, logoutUser, } from "../services/auth.service";
+import { registerUser, loginUser, refreshUser, logoutUser, resetPassword } from "../services/auth.service";
 import { googleClient } from "../config/google";
 import { loginWithGoogle } from "../services/auth.service";
 import { forgotPassword } from "../services/auth.service";
@@ -238,6 +238,61 @@ export const forgotPasswordController = async (
         return res.status(500).json({
             success: false,
             message: "Failed to process forgot password request",
+        });
+    }
+};
+
+export const resetPasswordController = async (
+    req: Request,
+    res: Response
+) => {
+    try {
+        const { token, newPassword, email } = req.body;
+
+        if (!token || !newPassword) {
+            return res.status(400).json({
+                success: false,
+                message: "Token and newPassword are required",
+            });
+        }
+
+        const result = await resetPassword({ token, newPassword, email });
+
+        return res.status(200).json({
+            success: true,
+            message: result.message,
+        });
+    } catch (error) {
+        const message =
+            error instanceof Error
+                ? error.message
+                : "Failed to reset password";
+
+        if (
+            message === "Invalid or expired reset token" ||
+            message === "Reset token has expired" ||
+            message === "Password must be at least 6 characters long" ||
+            message === "Reset token is required" ||
+            message === "Your account is inactive"
+        ) {
+            return res.status(400).json({
+                success: false,
+                message,
+            });
+        }
+
+        if (message === "User not found") {
+            return res.status(404).json({
+                success: false,
+                message,
+            });
+        }
+
+        console.error("Reset password error:", error);
+
+        return res.status(500).json({
+            success: false,
+            message: "Failed to reset password",
         });
     }
 };

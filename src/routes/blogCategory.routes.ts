@@ -1,7 +1,12 @@
 import { Router } from "express";
 import { authenticate } from "../middleware/auth.middleware";
 import {
-    createBlogCategoryController, getBlogCategoriesController, getBlogCategoryByIdController, updateBlogCategoryController, deleteBlogCategoryController
+    createBlogCategoryController,
+    getBlogCategoriesController,
+    getBlogCategoryBySlugController,
+    getBlogCategoryByIdController,
+    updateBlogCategoryController,
+    deleteBlogCategoryController,
 } from "../controllers/blogCategory.controller";
 
 const router = Router();
@@ -97,6 +102,107 @@ router.get(
     "/",
     getBlogCategoriesController
 );
+
+/**
+ * @swagger
+ * /api/v1/blog-categories/slug/{slug}:
+ *   get:
+ *     summary: Get blog category by slug
+ *     description: Retrieve details of a specific blog category by its unique URL slug.
+ *     tags: [Blog Categories]
+ *     parameters:
+ *       - in: path
+ *         name: slug
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Unique slug of the blog category
+ *         example: technology
+ *     responses:
+ *       200:
+ *         description: Blog category fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Blog category fetched successfully
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                       example: "550e8400-e29b-41d4-a716-446655440000"
+ *                     name:
+ *                       type: string
+ *                       example: Technology
+ *                     slug:
+ *                       type: string
+ *                       example: technology
+ *                     description:
+ *                       type: string
+ *                       nullable: true
+ *                       example: Technology related articles
+ *                     createdAt:
+ *                       type: string
+ *                       format: date-time
+ *                     updatedAt:
+ *                       type: string
+ *                       format: date-time
+ *                     blogs:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *       400:
+ *         description: Category slug is required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: Category slug is required
+ *       404:
+ *         description: Blog category not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: Blog category not found
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: Failed to fetch blog category
+ */
+router.get(
+    "/slug/:slug",
+    getBlogCategoryBySlugController
+);
+
 /**
  * @swagger
  * /api/v1/blog-categories/{id}:

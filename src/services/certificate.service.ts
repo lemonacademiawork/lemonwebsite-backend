@@ -16,6 +16,46 @@ export const getMyCertificates = async (studentId: string) => {
   return certificates;
 };
 
+export const getCertificateByCourse = async (
+  studentId: string,
+  courseId: string
+) => {
+  const course = await prisma.course.findUnique({
+    where: {
+      id: courseId,
+    },
+  });
+
+  if (!course) {
+    throw new Error("Course not found");
+  }
+
+  const certificate = await prisma.certificate.findUnique({
+    where: {
+      studentId_courseId: {
+        studentId,
+        courseId,
+      },
+    },
+    include: {
+      course: true,
+      student: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+        },
+      },
+    },
+  });
+
+  if (!certificate) {
+    throw new Error("Certificate not found");
+  }
+
+  return certificate;
+};
+
 export const createCertificate = async (
   studentId: string,
   courseId: string

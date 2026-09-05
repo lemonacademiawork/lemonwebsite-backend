@@ -276,4 +276,9 @@ router.patch(
     authenticate,
     markNotificationAsReadController
 );
+router.get(
+    "/me/progress",
+    authenticate,
+    getMyProgressController
+);
 export default router;

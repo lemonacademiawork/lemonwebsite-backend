@@ -67,6 +67,23 @@ export const getBlogCategoryById = async (categoryId: string) => {
 
     return category;
 };
+
+export const getBlogCategoryBySlug = async (slug: string) => {
+    const category = await prisma.blogCategory.findUnique({
+        where: {
+            slug,
+        },
+        include: {
+            blogs: true,
+        },
+    });
+
+    if (!category) {
+        throw new Error("Blog category not found");
+    }
+
+    return category;
+};
 export const updateBlogCategory = async (
     categoryId: string,
     data: {

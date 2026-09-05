@@ -94,6 +94,24 @@ export const getBlogById = async (blogId: string) => {
     return blog;
 };
 
+export const getBlogBySlug = async (slug: string) => {
+    const blog = await prisma.blog.findUnique({
+        where: {
+            slug,
+        },
+        include: {
+            author: true,
+            category: true,
+        },
+    });
+
+    if (!blog) {
+        throw new Error("Blog not found");
+    }
+
+    return blog;
+};
+
 interface UpdateBlogData {
     categoryId?: string | null;
     title?: string;

@@ -7,13 +7,11 @@ import {
     logout,
     googleLogin,
     googleCallback,
-} from "../controllers/auth.controller";
-
-import { getMe } from "../controllers/auth.controller";
-import { authenticate } from "../middleware/auth.middleware";
-import {
+    getMe,
     forgotPasswordController,
+    resetPasswordController,
 } from "../controllers/auth.controller";
+import { authenticate } from "../middleware/auth.middleware";
 const router = Router();
 
 /**
@@ -173,7 +171,7 @@ router.get("/google", googleLogin);
  *         description: Internal server error
  */
 router.get("/google/callback", googleCallback);
-router.get("/google", googleLogin);
+
 /**
  * @swagger
  * /api/v1/auth/forgot-password:
@@ -207,5 +205,96 @@ router.get("/google", googleLogin);
 router.post(
     "/forgot-password",
     forgotPasswordController
+);
+
+/**
+ * @swagger
+ * /api/v1/auth/reset-password:
+ *   post:
+ *     summary: Reset user password using token
+ *     description: Resets the user's password by validating the reset token received via forgot-password. Hashes the new password with bcrypt and invalidates the token to prevent reuse.
+ *     tags:
+ *       - Authentication
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - token
+ *               - newPassword
+ *             properties:
+ *               token:
+ *                 type: string
+ *                 description: Hex reset token received from forgot-password
+ *                 example: 3f8a9b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a
+ *               newPassword:
+ *                 type: string
+ *                 format: password
+ *                 description: New password (minimum 6 characters)
+ *                 example: NewSecurePass123!
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 description: Optional user email address
+ *                 example: student@example.com
+ *     responses:
+ *       200:
+ *         description: Password reset successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Password reset successful. You can now log in with your new password.
+ *       400:
+ *         description: Invalid/expired token or invalid password
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: Invalid or expired reset token
+ *       404:
+ *         description: User not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: User not found
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: Failed to reset password
+ */
+router.post(
+    "/reset-password",
+    resetPasswordController
 );
 export default router;

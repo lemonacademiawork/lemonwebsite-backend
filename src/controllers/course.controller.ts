@@ -1,5 +1,18 @@
 import { Request, Response } from "express";
-import { createCourse, getAllCourses, getCourseById, updateCourse, deleteCourse, toggleCoursePublish, getCourseContent } from "../services/course.service";
+import {
+    createCourse,
+    getAllCourses,
+    getCourseById,
+    updateCourse,
+    deleteCourse,
+    toggleCoursePublish,
+    getCourseContent,
+    getCourseBySlug,
+    getCourseEnrollmentStatus,
+    getCourseProgress,
+    reorderCourseModules,
+    reorderCourseLessons,
+} from "../services/course.service";
 
 export const createCourseController = async (
     req: Request,
@@ -415,6 +428,325 @@ export const getCourseContentController = async (
         return res.status(500).json({
             success: false,
             message: "Failed to retrieve course content",
+        });
+    }
+};
+export const getCourseBySlugController = async (
+    req: Request,
+    res: Response
+) => {
+    try {
+        const { slug } = req.params;
+
+        if (!slug) {
+            return res.status(400).json({
+                success: false,
+                message: "Course slug is required",
+            });
+        }
+
+        const course = await getCourseBySlug(slug);
+
+        return res.status(200).json({
+            success: true,
+            message: "Course fetched successfully",
+            data: course,
+        });
+    } catch (error) {
+        console.error("Get course by slug error:", error);
+
+        if (
+            error instanceof Error &&
+            error.message === "Course not found"
+        ) {
+            return res.status(404).json({
+                success: false,
+                message: "Course not found",
+            });
+        }
+
+        return res.status(500).json({
+            success: false,
+            message: "Failed to fetch course",
+        });
+    }
+};
+
+export const getCoursesController = getAllCoursesController;
+export const publishCourseController = toggleCoursePublishController;
+
+export const getCourseEnrollmentStatusController = async (
+    req: Request,
+    res: Response
+) => {
+    try {
+        if (!req.user) {
+            return res.status(401).json({
+                success: false,
+                message: "Authentication required",
+            });
+        }
+
+        const courseId = req.params.courseId || req.params.id;
+
+        if (!courseId) {
+            return res.status(400).json({
+                success: false,
+                message: "Course ID is required",
+            });
+        }
+
+        const data = await getCourseEnrollmentStatus(
+            courseId,
+            req.user.userId
+        );
+
+        return res.status(200).json({
+            success: true,
+            message: "Enrollment status retrieved successfully",
+            data,
+        });
+    } catch (error) {
+        const message =
+            error instanceof Error
+                ? error.message
+                : "Failed to retrieve enrollment status";
+
+        if (message === "Course not found") {
+            return res.status(404).json({
+                success: false,
+                message: "Course not found",
+            });
+        }
+
+        console.error("Get course enrollment status error:", error);
+
+        return res.status(500).json({
+            success: false,
+            message: "Failed to retrieve enrollment status",
+        });
+    }
+};
+
+export const getCourseProgressController = async (
+    req: Request,
+    res: Response
+) => {
+    try {
+        if (!req.user) {
+            return res.status(401).json({
+                success: false,
+                message: "Authentication required",
+            });
+        }
+
+        const courseId = req.params.courseId || req.params.id;
+
+        if (!courseId) {
+            return res.status(400).json({
+                success: false,
+                message: "Course ID is required",
+            });
+        }
+
+        const data = await getCourseProgress(
+            courseId,
+            req.user.userId
+        );
+
+        return res.status(200).json({
+            success: true,
+            message: "Course progress retrieved successfully",
+            data,
+        });
+    } catch (error) {
+        const message =
+            error instanceof Error
+                ? error.message
+                : "Failed to retrieve course progress";
+
+        if (message === "Course not found") {
+            return res.status(404).json({
+                success: false,
+                message: "Course not found",
+            });
+        }
+
+        console.error("Get course progress error:", error);
+
+        return res.status(500).json({
+            success: false,
+            message: "Failed to retrieve course progress",
+        });
+    }
+};
+
+export const reorderCourseModulesController = async (
+    req: Request,
+    res: Response
+) => {
+    try {
+        if (!req.user) {
+            return res.status(401).json({
+                success: false,
+                message: "Authentication required",
+            });
+        }
+
+        const { courseId } = req.params;
+        const { modules } = req.body;
+
+        if (!courseId) {
+            return res.status(400).json({
+                success: false,
+                message: "Course ID is required",
+            });
+        }
+
+        if (!modules || !Array.isArray(modules)) {
+            return res.status(400).json({
+                success: false,
+                message: "Modules array is required",
+            });
+        }
+
+        const updatedModules = await reorderCourseModules(
+            courseId,
+            req.user.userId,
+            req.user.role,
+            modules
+        );
+
+        return res.status(200).json({
+            success: true,
+            message: "Modules reordered successfully",
+            data: updatedModules,
+        });
+    } catch (error) {
+        const message =
+            error instanceof Error
+                ? error.message
+                : "Failed to reorder modules";
+
+        if (message === "Course not found") {
+            return res.status(404).json({
+                success: false,
+                message,
+            });
+        }
+
+        if (
+            message ===
+            "You are not allowed to manage modules for this course"
+        ) {
+            return res.status(403).json({
+                success: false,
+                message,
+            });
+        }
+
+        if (
+            message.includes("is required") ||
+            message.includes("Duplicate") ||
+            message.includes("Invalid orderIndex") ||
+            message.includes("do not belong to this course")
+        ) {
+            return res.status(400).json({
+                success: false,
+                message,
+            });
+        }
+
+        console.error("Reorder course modules error:", error);
+
+        return res.status(500).json({
+            success: false,
+            message: "Failed to reorder modules",
+        });
+    }
+};
+
+export const reorderCourseLessonsController = async (
+    req: Request,
+    res: Response
+) => {
+    try {
+        if (!req.user) {
+            return res.status(401).json({
+                success: false,
+                message: "Authentication required",
+            });
+        }
+
+        const { courseId } = req.params;
+        const { lessons } = req.body;
+
+        if (!courseId) {
+            return res.status(400).json({
+                success: false,
+                message: "Course ID is required",
+            });
+        }
+
+        if (!lessons || !Array.isArray(lessons)) {
+            return res.status(400).json({
+                success: false,
+                message: "Lessons array is required",
+            });
+        }
+
+        const updatedModules = await reorderCourseLessons(
+            courseId,
+            req.user.userId,
+            req.user.role,
+            lessons
+        );
+
+        return res.status(200).json({
+            success: true,
+            message: "Lessons reordered successfully",
+            data: updatedModules,
+        });
+    } catch (error) {
+        const message =
+            error instanceof Error
+                ? error.message
+                : "Failed to reorder lessons";
+
+        if (message === "Course not found") {
+            return res.status(404).json({
+                success: false,
+                message,
+            });
+        }
+
+        if (
+            message ===
+            "You are not allowed to manage lessons for this course"
+        ) {
+            return res.status(403).json({
+                success: false,
+                message,
+            });
+        }
+
+        if (
+            message.includes("is required") ||
+            message.includes("Duplicate") ||
+            message.includes("Invalid orderIndex") ||
+            message.includes("do not belong to this course")
+        ) {
+            return res.status(400).json({
+                success: false,
+                message,
+            });
+        }
+
+        console.error("Reorder course lessons error:", error);
+
+        return res.status(500).json({
+            success: false,
+            message: "Failed to reorder lessons",
         });
     }
 };

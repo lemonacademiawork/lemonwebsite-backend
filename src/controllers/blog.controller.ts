@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { createBlog, getBlogs, getBlogById, updateBlog, toggleBlogPublish, deleteBlog } from "../services/blog.service";
+import { createBlog, getBlogs, getBlogById, getBlogBySlug, updateBlog, toggleBlogPublish, deleteBlog } from "../services/blog.service";
 
 export const createBlogController = async (
     req: Request,
@@ -105,7 +105,51 @@ export const getBlogsController = async (
             message: "Failed to fetch blogs",
         });
     }
-}; export const getBlogByIdController = async (
+};
+
+export const getBlogBySlugController = async (
+    req: Request,
+    res: Response
+) => {
+    try {
+        const { slug } = req.params;
+
+        if (!slug) {
+            return res.status(400).json({
+                success: false,
+                message: "Blog slug is required",
+            });
+        }
+
+        const blog = await getBlogBySlug(slug);
+
+        return res.status(200).json({
+            success: true,
+            data: blog,
+        });
+    } catch (error) {
+        const message =
+            error instanceof Error
+                ? error.message
+                : "Failed to fetch blog";
+
+        if (message === "Blog not found") {
+            return res.status(404).json({
+                success: false,
+                message,
+            });
+        }
+
+        console.error("Get blog by slug error:", error);
+
+        return res.status(500).json({
+            success: false,
+            message: "Failed to fetch blog",
+        });
+    }
+};
+
+export const getBlogByIdController = async (
     req: Request,
     res: Response
 ) => {
