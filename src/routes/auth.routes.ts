@@ -299,6 +299,33 @@ router.post(
     resetPasswordController
 );
 
+/**
+ * @swagger
+ * /api/v1/auth/test-email:
+ *   post:
+ *     summary: Test Brevo email delivery
+ *     tags:
+ *       - Authentication
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 example: your_email@gmail.com
+ *     responses:
+ *       200:
+ *         description: Test email sent successfully
+ *       400:
+ *         description: Email is required
+ *       500:
+ *         description: Email delivery failed with details
+ */
 router.post(
     "/test-email",
     testEmailController
