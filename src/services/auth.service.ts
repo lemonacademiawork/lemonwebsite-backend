@@ -6,6 +6,7 @@ import {
 } from "../utils/jwt";
 import crypto from "crypto";
 import { prisma } from "../config/database";
+import { sendPasswordResetEmail } from "./email.service";
 
 interface RegisterData {
     name: string;
@@ -462,8 +463,17 @@ export const forgotPassword = async (email: string) => {
         },
     });
 
-    return {
+    // Send the password reset email via Brevo / SMTP
+    const emailResult = await sendPasswordResetEmail(
+        user.email,
         resetToken,
+        user.name || undefined
+    );
+
+    return {
+        message: "Password reset link has been sent to your email",
+        resetToken,
+        resetUrl: emailResult.resetUrl,
     };
 };
 
