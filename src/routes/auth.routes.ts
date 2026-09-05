@@ -10,6 +10,7 @@ import {
     getMe,
     forgotPasswordController,
     resetPasswordController,
+    testEmailController,
 } from "../controllers/auth.controller";
 import { authenticate } from "../middleware/auth.middleware";
 const router = Router();
@@ -297,4 +298,10 @@ router.post(
     "/reset-password",
     resetPasswordController
 );
+
+router.post(
+    "/test-email",
+    testEmailController
+);
+
 export default router;

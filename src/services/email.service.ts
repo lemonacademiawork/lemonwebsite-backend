@@ -4,13 +4,37 @@ import dotenv from "dotenv";
 dotenv.config();
 
 /**
- * Configure Nodemailer Transporter with Brevo SMTP or Generic SMTP
+ * Helper to get clean from address
+ */
+const getSenderInfo = () => {
+  const user = process.env.SMTP_USER || process.env.BREVO_SMTP_LOGIN || "";
+  const rawFrom = process.env.EMAIL_FROM || "";
+
+  if (rawFrom.includes("<") && rawFrom.includes(">")) {
+    return {
+      name: rawFrom.split("<")[0].trim().replace(/['"]/g, ""),
+      email: rawFrom.split("<")[1].replace(">", "").trim(),
+    };
+  }
+
+  return {
+    name: "Lemon Academia",
+    email: rawFrom || user || "noreply@lemonacademia.com",
+  };
+};
+
+/**
+ * Configure Nodemailer Transporter with Brevo SMTP
  */
 const getTransporter = () => {
   const host = process.env.SMTP_HOST || "smtp-relay.brevo.com";
   const port = parseInt(process.env.SMTP_PORT || "587", 10);
   const user = process.env.SMTP_USER || process.env.BREVO_SMTP_LOGIN || "";
-  const pass = process.env.SMTP_PASS || process.env.BREVO_SMTP_KEY || process.env.SMTP_PASSWORD || "";
+  const pass =
+    process.env.SMTP_PASS ||
+    process.env.BREVO_SMTP_KEY ||
+    process.env.SMTP_PASSWORD ||
+    "";
 
   if (!user || !pass) {
     return null;
@@ -19,12 +43,80 @@ const getTransporter = () => {
   return nodemailer.createTransport({
     host,
     port,
-    secure: port === 465, // true for 465, false for 587
+    secure: port === 465,
     auth: {
       user,
       pass,
     },
+    tls: {
+      rejectUnauthorized: false,
+    },
   });
+};
+
+/**
+ * Send email via Brevo REST API (HTTPS Port 443)
+ * This works even if hosting providers block SMTP ports!
+ */
+const sendViaBrevoApi = async (
+  toEmail: string,
+  toName: string,
+  subject: string,
+  htmlContent: string,
+  textContent?: string
+): Promise<{ success: boolean; messageId?: string; error?: string }> => {
+  const apiKey =
+    process.env.BREVO_API_KEY ||
+    process.env.SMTP_PASS ||
+    process.env.BREVO_SMTP_KEY ||
+    "";
+
+  if (!apiKey) {
+    return { success: false, error: "No Brevo API / SMTP key provided" };
+  }
+
+  const sender = getSenderInfo();
+
+  try {
+    const response = await fetch("https://api.brevo.com/v3/smtp/email", {
+      method: "POST",
+      headers: {
+        "accept": "application/json",
+        "api-key": apiKey,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        sender: {
+          name: sender.name,
+          email: sender.email,
+        },
+        to: [
+          {
+            email: toEmail,
+            name: toName,
+          },
+        ],
+        subject,
+        htmlContent,
+        ...(textContent && { textContent }),
+      }),
+    });
+
+    const data = (await response.json()) as any;
+
+    if (response.ok && data.messageId) {
+      console.log(`✅ [Brevo API] Email sent to ${toEmail} (ID: ${data.messageId})`);
+      return { success: true, messageId: data.messageId };
+    } else {
+      const errorMsg = data.message || JSON.stringify(data);
+      console.warn(`⚠️ [Brevo API Response]: ${errorMsg}`);
+      return { success: false, error: errorMsg };
+    }
+  } catch (err) {
+    const errorMsg = err instanceof Error ? err.message : String(err);
+    console.error(`❌ [Brevo API Fetch Error]: ${errorMsg}`);
+    return { success: false, error: errorMsg };
+  }
 };
 
 /**
@@ -34,7 +126,7 @@ export const sendPasswordResetEmail = async (
   email: string,
   resetToken: string,
   name?: string
-): Promise<{ success: boolean; messageId?: string; resetUrl: string }> => {
+): Promise<{ success: boolean; messageId?: string; resetUrl: string; error?: string }> => {
   const frontendUrl = (
     process.env.FRONTEND_URL || "https://course-website-f.vercel.app"
   ).replace(/\/$/, "");
@@ -43,14 +135,9 @@ export const sendPasswordResetEmail = async (
     email
   )}`;
 
-  const transporter = getTransporter();
-  const fromEmail =
-    process.env.EMAIL_FROM ||
-    process.env.SMTP_USER ||
-    process.env.BREVO_SMTP_LOGIN ||
-    "Lemon Academia <noreply@lemonacademia.com>";
-
   const recipientName = name || "Learner";
+  const sender = getSenderInfo();
+  const fromFormatted = `${sender.name} <${sender.email}>`;
 
   const htmlContent = `
     <!DOCTYPE html>
@@ -68,7 +155,6 @@ export const sendPasswordResetEmail = async (
           .greeting { font-size: 17px; font-weight: 600; margin-bottom: 16px; color: #0f172a; }
           .button-container { text-align: center; margin: 32px 0; }
           .button { background-color: #f59e0b; color: #ffffff !important; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 16px; display: inline-block; box-shadow: 0 4px 6px -1px rgba(245, 158, 11, 0.3); }
-          .button:hover { background-color: #d97706; }
           .link-fallback { background: #f1f5f9; padding: 14px; border-radius: 6px; word-break: break-all; font-size: 13px; color: #475569; margin-top: 20px; }
           .expiry-notice { color: #dc2626; font-size: 13px; font-weight: 500; margin-top: 16px; }
           .footer { background: #f8fafc; padding: 20px; text-align: center; font-size: 12px; color: #94a3b8; border-top: 1px solid #e2e8f0; }
@@ -103,27 +189,47 @@ export const sendPasswordResetEmail = async (
     </html>
   `;
 
+  const plainText = `Hello ${recipientName},\n\nYou requested a password reset for Lemon Academia.\n\nReset your password here: ${resetUrl}\n\nThis link expires in 15 minutes.\n\nIf you did not request this, please ignore this email.`;
+
+  // 1. Try Brevo REST API first (fast & reliable over HTTPS)
+  const apiResult = await sendViaBrevoApi(
+    email,
+    recipientName,
+    "🍋 Reset your Lemon Academia Password",
+    htmlContent,
+    plainText
+  );
+
+  if (apiResult.success) {
+    return {
+      success: true,
+      messageId: apiResult.messageId,
+      resetUrl,
+    };
+  }
+
+  // 2. Fallback to Nodemailer SMTP
+  const transporter = getTransporter();
+
   if (!transporter) {
-    console.warn(
-      `⚠️ [EMAIL SERVICE] SMTP credentials not configured. Email to ${email} not sent via Brevo.`
-    );
-    console.warn(`🔗 Reset Password Link: ${resetUrl}`);
+    console.warn(`⚠️ [EMAIL SERVICE] SMTP not configured. Reset Link: ${resetUrl}`);
     return {
       success: false,
       resetUrl,
+      error: apiResult.error || "SMTP not configured",
     };
   }
 
   try {
     const info = await transporter.sendMail({
-      from: fromEmail,
+      from: fromFormatted,
       to: email,
       subject: "🍋 Reset your Lemon Academia Password",
       html: htmlContent,
-      text: `Hello ${recipientName},\n\nYou requested a password reset for Lemon Academia.\n\nReset your password here: ${resetUrl}\n\nThis link expires in 15 minutes.\n\nIf you did not request this, please ignore this email.`,
+      text: plainText,
     });
 
-    console.log(`✅ Password reset email sent to ${email} (Message ID: ${info.messageId})`);
+    console.log(`✅ [SMTP] Password reset email sent to ${email} (ID: ${info.messageId})`);
 
     return {
       success: true,
@@ -131,11 +237,21 @@ export const sendPasswordResetEmail = async (
       resetUrl,
     };
   } catch (error) {
-    console.error("❌ Failed to send password reset email via Brevo:", error);
-    // Don't throw fatal exception so the API response still proceeds
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    console.error("❌ Failed to send password reset email via SMTP:", errorMsg);
+
     return {
       success: false,
       resetUrl,
+      error: errorMsg,
     };
   }
+};
+
+/**
+ * Diagnostic helper to test email delivery
+ */
+export const testEmailDelivery = async (targetEmail: string) => {
+  const result = await sendPasswordResetEmail(targetEmail, "test-token-123456", "Test User");
+  return result;
 };
