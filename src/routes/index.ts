@@ -11,6 +11,7 @@ import reviewRoutes from "./review.routes";
 import galleryRoutes from "./gallery.routes";
 import referralRoutes from "./referral.routes";
 import categoryRoutes from "./category.routes";
+import uploadRoutes from "./upload.routes";
 const router = Router();
 
 router.use("/courses", courseRoutes);
@@ -25,4 +26,5 @@ router.use("/reviews", reviewRoutes);
 router.use("/gallery", galleryRoutes);
 router.use("/categories", categoryRoutes);
 router.use("/referrals", referralRoutes);
+router.use("/upload", uploadRoutes);
 export default router;
