@@ -7,38 +7,60 @@ dotenv.config();
  * Helper to get clean from address
  */
 const getSenderInfo = () => {
-  const user = process.env.SMTP_USER || process.env.BREVO_SMTP_LOGIN || "";
-  const rawFrom = process.env.EMAIL_FROM || "";
+  const rawFrom = (process.env.EMAIL_FROM || "").trim();
+  const defaultEmail =
+    process.env.SMTP_USER ||
+    process.env.BREVO_SMTP_LOGIN ||
+    "noreply@lemonacademia.com";
 
-  if (rawFrom.includes("<") && rawFrom.includes(">")) {
-    return {
-      name: rawFrom.split("<")[0].trim().replace(/['"]/g, ""),
-      email: rawFrom.split("<")[1].replace(">", "").trim(),
-    };
+  if (rawFrom) {
+    // If format is: "Lemon Academia <user@example.com>"
+    const angleMatch = rawFrom.match(/^(.*?)\s*<([^>]+)>$/);
+    if (angleMatch) {
+      return {
+        name: angleMatch[1].replace(/['"]/g, "").trim() || "Lemon Academia",
+        email: angleMatch[2].trim(),
+      };
+    }
+
+    // If format is: "Lemon Academia user@example.com" or just "user@example.com"
+    const emailRegex = /([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/;
+    const emailMatch = rawFrom.match(emailRegex);
+    if (emailMatch) {
+      const extractedEmail = emailMatch[1];
+      const extractedName = rawFrom.replace(extractedEmail, "").trim().replace(/['"]/g, "");
+      return {
+        name: extractedName || "Lemon Academia",
+        email: extractedEmail,
+      };
+    }
   }
 
   return {
     name: "Lemon Academia",
-    email: rawFrom || user || "noreply@lemonacademia.com",
+    email: defaultEmail,
   };
 };
 
 /**
- * Configure Nodemailer Transporter with Brevo SMTP
+ * Configure Nodemailer Transporter (Brevo SMTP / Gmail SMTP / Custom SMTP)
  */
 const getTransporter = () => {
-  const host = process.env.SMTP_HOST || "smtp-relay.brevo.com";
+  const host = (process.env.SMTP_HOST || "smtp-relay.brevo.com").trim();
   const port = parseInt(process.env.SMTP_PORT || "587", 10);
-  const user = process.env.SMTP_USER || process.env.BREVO_SMTP_LOGIN || "";
-  const pass =
+  const user = (process.env.SMTP_USER || process.env.BREVO_SMTP_LOGIN || "").trim();
+  const pass = (
     process.env.SMTP_PASS ||
     process.env.BREVO_SMTP_KEY ||
     process.env.SMTP_PASSWORD ||
-    "";
+    ""
+  ).trim();
 
   if (!user || !pass) {
     return null;
   }
+
+  const isGmail = host.includes("gmail");
 
   return nodemailer.createTransport({
     host,
@@ -56,7 +78,7 @@ const getTransporter = () => {
 
 /**
  * Send email via Brevo REST API (HTTPS Port 443)
- * This works even if hosting providers block SMTP ports!
+ * Note: Requires a Brevo API key (starts with xkeysib-)
  */
 const sendViaBrevoApi = async (
   toEmail: string,
@@ -65,14 +87,14 @@ const sendViaBrevoApi = async (
   htmlContent: string,
   textContent?: string
 ): Promise<{ success: boolean; messageId?: string; error?: string }> => {
-  const apiKey =
-    process.env.BREVO_API_KEY ||
-    process.env.SMTP_PASS ||
-    process.env.BREVO_SMTP_KEY ||
-    "";
+  const apiKey = (process.env.BREVO_API_KEY || "").trim();
 
-  if (!apiKey) {
-    return { success: false, error: "No Brevo API / SMTP key provided" };
+  // Brevo API requires an xkeysib- key, not xsmtpsib-
+  if (!apiKey || apiKey.startsWith("xsmtpsib-")) {
+    return {
+      success: false,
+      error: "No valid Brevo REST API Key (xkeysib-...) provided",
+    };
   }
 
   const sender = getSenderInfo();
