@@ -6,7 +6,6 @@ import {
 } from "../utils/jwt";
 import crypto from "crypto";
 import { prisma } from "../config/database";
-import { sendPasswordResetEmail } from "./email.service";
 
 interface RegisterData {
     name: string;
@@ -463,17 +462,13 @@ export const forgotPassword = async (email: string) => {
         },
     });
 
-    // Send the password reset email via Brevo / SMTP
-    const emailResult = await sendPasswordResetEmail(
-        user.email,
-        resetToken,
-        user.name || undefined
-    );
+    const frontendUrl = (process.env.FRONTEND_URL || "https://course-website-f.vercel.app").replace(/\/$/, "");
+    const resetUrl = `${frontendUrl}/reset-password?token=${resetToken}&email=${encodeURIComponent(user.email)}`;
 
     return {
-        message: "Password reset link has been sent to your email",
+        message: "Password reset token generated successfully",
         resetToken,
-        resetUrl: emailResult.resetUrl,
+        resetUrl,
     };
 };
 

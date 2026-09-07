@@ -296,37 +296,3 @@ export const resetPasswordController = async (
         });
     }
 };
-
-export const testEmailController = async (req: Request, res: Response) => {
-    try {
-        const { email } = req.body;
-        if (!email) {
-            return res.status(400).json({
-                success: false,
-                message: "Email is required to test delivery",
-            });
-        }
-
-        const { testEmailDelivery } = await import("../services/email.service");
-        const result = await testEmailDelivery(email);
-
-        if (result.success) {
-            return res.status(200).json({
-                success: true,
-                message: `Test email sent successfully to ${email}`,
-                data: result,
-            });
-        } else {
-            return res.status(500).json({
-                success: false,
-                message: `Failed to send email: ${result.error || "Unknown error"}`,
-                data: result,
-            });
-        }
-    } catch (error) {
-        return res.status(500).json({
-            success: false,
-            message: error instanceof Error ? error.message : "Test email failed",
-        });
-    }
-};
