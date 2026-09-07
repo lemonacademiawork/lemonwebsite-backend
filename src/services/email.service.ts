@@ -43,36 +43,60 @@ const getSenderInfo = () => {
 };
 
 /**
- * Configure Nodemailer Transporter (Brevo SMTP / Gmail SMTP / Custom SMTP)
+ * Configure Nodemailer Transporter (Gmail / Brevo SMTP / Custom SMTP)
  */
 const getTransporter = () => {
-  const host = (process.env.SMTP_HOST || "smtp-relay.brevo.com").trim();
+  const host = (process.env.SMTP_HOST || "").trim();
   const port = parseInt(process.env.SMTP_PORT || "587", 10);
   const user = (process.env.SMTP_USER || process.env.BREVO_SMTP_LOGIN || "").trim();
-  const pass = (
+  const rawPass = (
     process.env.SMTP_PASS ||
     process.env.BREVO_SMTP_KEY ||
     process.env.SMTP_PASSWORD ||
     ""
   ).trim();
 
+  // Strip any spaces from password (e.g. Google App Passwords like "zvss ddav uasi janv")
+  const pass = rawPass.replace(/\s+/g, "");
+
   if (!user || !pass) {
     return null;
   }
 
-  const isGmail = host.includes("gmail");
+  const isGmail =
+    host.includes("gmail") ||
+    user.toLowerCase().endsWith("@gmail.com") ||
+    (!host && user.includes("@gmail.com"));
+
+  if (isGmail) {
+    return nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user,
+        pass,
+      },
+      connectionTimeout: 15000,
+      greetingTimeout: 15000,
+      socketTimeout: 20000,
+    });
+  }
+
+  const actualHost = host || "smtp-relay.brevo.com";
 
   return nodemailer.createTransport({
-    host,
+    host: actualHost,
     port,
     secure: port === 465,
     auth: {
       user,
-      pass,
+      pass: rawPass,
     },
     tls: {
       rejectUnauthorized: false,
     },
+    connectionTimeout: 15000,
+    greetingTimeout: 15000,
+    socketTimeout: 20000,
   });
 };
 
