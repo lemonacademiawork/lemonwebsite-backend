@@ -101,6 +101,62 @@ const getTransporter = () => {
 };
 
 /**
+ * Send email via Resend REST API (HTTPS Port 443 - Works seamlessly on Render free tier)
+ * Note: Free 3,000 emails/mo, sign up at resend.com -> API Keys
+ */
+const sendViaResendApi = async (
+  toEmail: string,
+  subject: string,
+  htmlContent: string,
+  textContent?: string
+): Promise<{ success: boolean; messageId?: string; error?: string }> => {
+  const apiKey = (process.env.RESEND_API_KEY || "").trim();
+
+  if (!apiKey) {
+    return {
+      success: false,
+      error: "No RESEND_API_KEY configured",
+    };
+  }
+
+  const sender = getSenderInfo();
+  // Resend allows 'Lemon Academia <onboarding@resend.dev>' without custom domain setup
+  const fromAddress = process.env.RESEND_FROM || `${sender.name} <onboarding@resend.dev>`;
+
+  try {
+    const response = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: fromAddress,
+        to: [toEmail],
+        subject,
+        html: htmlContent,
+        ...(textContent && { text: textContent }),
+      }),
+    });
+
+    const data = (await response.json()) as any;
+
+    if (response.ok && data.id) {
+      console.log(`✅ [Resend API] Email sent to ${toEmail} (ID: ${data.id})`);
+      return { success: true, messageId: data.id };
+    } else {
+      const errorMsg = data.message || JSON.stringify(data);
+      console.warn(`⚠️ [Resend API Response]: ${errorMsg}`);
+      return { success: false, error: errorMsg };
+    }
+  } catch (err) {
+    const errorMsg = err instanceof Error ? err.message : String(err);
+    console.error(`❌ [Resend API Fetch Error]: ${errorMsg}`);
+    return { success: false, error: errorMsg };
+  }
+};
+
+/**
  * Send email via Brevo REST API (HTTPS Port 443)
  * Note: Requires a Brevo API key (starts with xkeysib-)
  */
@@ -237,8 +293,24 @@ export const sendPasswordResetEmail = async (
 
   const plainText = `Hello ${recipientName},\n\nYou requested a password reset for Lemon Academia.\n\nReset your password here: ${resetUrl}\n\nThis link expires in 15 minutes.\n\nIf you did not request this, please ignore this email.`;
 
-  // 1. Try Brevo REST API first (fast & reliable over HTTPS)
-  const apiResult = await sendViaBrevoApi(
+  // 1. Try Resend REST API first (fast & 100% reliable on Render via HTTPS port 443)
+  const resendResult = await sendViaResendApi(
+    email,
+    "🍋 Reset your Lemon Academia Password",
+    htmlContent,
+    plainText
+  );
+
+  if (resendResult.success) {
+    return {
+      success: true,
+      messageId: resendResult.messageId,
+      resetUrl,
+    };
+  }
+
+  // 2. Try Brevo REST API (HTTPS Port 443)
+  const brevoResult = await sendViaBrevoApi(
     email,
     recipientName,
     "🍋 Reset your Lemon Academia Password",
@@ -246,23 +318,23 @@ export const sendPasswordResetEmail = async (
     plainText
   );
 
-  if (apiResult.success) {
+  if (brevoResult.success) {
     return {
       success: true,
-      messageId: apiResult.messageId,
+      messageId: brevoResult.messageId,
       resetUrl,
     };
   }
 
-  // 2. Fallback to Nodemailer SMTP
+  // 3. Fallback to Nodemailer SMTP
   const transporter = getTransporter();
 
   if (!transporter) {
-    console.warn(`⚠️ [EMAIL SERVICE] SMTP not configured. Reset Link: ${resetUrl}`);
+    console.warn(`⚠️ [EMAIL SERVICE] SMTP / Email API not configured. Reset Link: ${resetUrl}`);
     return {
       success: false,
       resetUrl,
-      error: apiResult.error || "SMTP not configured",
+      error: resendResult.error || brevoResult.error || "Email service not configured",
     };
   }
 
