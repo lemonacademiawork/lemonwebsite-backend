@@ -54,7 +54,8 @@ export const createProcedureController = async (
                         ? Number(orderIndex)
                         : undefined,
                 lessonId,
-            }
+            },
+            req.user.role
         );
 
         return res.status(201).json({
@@ -177,7 +178,8 @@ export const updateProcedureController = async (
                         ? Number(orderIndex)
                         : undefined,
                 lessonId,
-            }
+            },
+            req.user.role
         );
 
         return res.status(200).json({
@@ -245,7 +247,8 @@ export const deleteProcedureController = async (
         const result = await deleteProcedure(
             courseId,
             procedureId,
-            req.user.userId
+            req.user.userId,
+            req.user.role
         );
 
         return res.status(200).json({

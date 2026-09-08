@@ -83,7 +83,8 @@ export const createLessonController = async (
                         : undefined,
 
                 isPreview,
-            }
+            },
+            req.user.role
         );
 
         return res.status(201).json({
@@ -236,7 +237,8 @@ export const updateLessonController = async (
 
                 isPreview,
                 isPublished,
-            }
+            },
+            req.user.role
         );
 
         return res.status(200).json({
@@ -306,7 +308,8 @@ export const deleteLessonController = async (
         const result = await deleteLesson(
             moduleId,
             lessonId,
-            req.user.userId
+            req.user.userId,
+            req.user.role
         );
 
         return res.status(200).json({
@@ -371,7 +374,8 @@ export const toggleLessonPublishController = async (
         const lesson = await toggleLessonPublish(
             moduleId,
             lessonId,
-            req.user.userId
+            req.user.userId,
+            req.user.role
         );
 
         return res.status(200).json({

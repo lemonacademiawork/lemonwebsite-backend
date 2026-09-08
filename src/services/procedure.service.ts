@@ -10,7 +10,8 @@ interface CreateProcedureData {
 export const createProcedure = async (
     courseId: string,
     trainerId: string,
-    data: CreateProcedureData
+    data: CreateProcedureData,
+    userRole?: string
 ) => {
     const course = await prisma.course.findUnique({
         where: {
@@ -22,7 +23,7 @@ export const createProcedure = async (
         throw new Error("Course not found");
     }
 
-    if (course.trainerId !== trainerId) {
+    if (userRole !== "ADMIN" && course.trainerId !== trainerId) {
         throw new Error(
             "You are not allowed to add procedures to this course"
         );
@@ -99,7 +100,8 @@ export const updateProcedure = async (
     courseId: string,
     procedureId: string,
     trainerId: string,
-    data: UpdateProcedureData
+    data: UpdateProcedureData,
+    userRole?: string
 ) => {
     const course = await prisma.course.findUnique({
         where: {
@@ -111,7 +113,7 @@ export const updateProcedure = async (
         throw new Error("Course not found");
     }
 
-    if (course.trainerId !== trainerId) {
+    if (userRole !== "ADMIN" && course.trainerId !== trainerId) {
         throw new Error(
             "You are not allowed to update procedures in this course"
         );
@@ -173,7 +175,8 @@ export const updateProcedure = async (
 export const deleteProcedure = async (
     courseId: string,
     procedureId: string,
-    trainerId: string
+    trainerId: string,
+    userRole?: string
 ) => {
     const course = await prisma.course.findUnique({
         where: {
@@ -185,7 +188,7 @@ export const deleteProcedure = async (
         throw new Error("Course not found");
     }
 
-    if (course.trainerId !== trainerId) {
+    if (userRole !== "ADMIN" && course.trainerId !== trainerId) {
         throw new Error(
             "You are not allowed to delete procedures from this course"
         );

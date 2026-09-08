@@ -70,7 +70,8 @@ export const createResourceController = async (
                         : undefined,
                 lessonId,
                 procedureId,
-            }
+            },
+            req.user.role
         );
 
         return res.status(201).json({
@@ -211,7 +212,8 @@ export const updateResourceController = async (
                         : undefined,
                 lessonId,
                 procedureId,
-            }
+            },
+            req.user.role
         );
 
         return res.status(200).json({
@@ -285,7 +287,8 @@ export const deleteResourceController = async (
         const result = await deleteResource(
             courseId,
             resourceId,
-            req.user.userId
+            req.user.userId,
+            req.user.role
         );
 
         return res.status(200).json({

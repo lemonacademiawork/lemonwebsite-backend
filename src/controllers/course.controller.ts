@@ -197,7 +197,8 @@ export const updateCourseController = async (
                         : undefined,
                 thumbnailUrl,
                 categoryId,
-            }
+            },
+            req.user.role
         );
 
         return res.status(200).json({
@@ -269,7 +270,8 @@ export const deleteCourseController = async (
 
         const result = await deleteCourse(
             id,
-            req.user.userId
+            req.user.userId,
+            req.user.role
         );
 
         return res.status(200).json({
@@ -330,7 +332,8 @@ export const toggleCoursePublishController = async (
 
         const course = await toggleCoursePublish(
             id,
-            req.user.userId
+            req.user.userId,
+            req.user.role
         );
 
         return res.status(200).json({

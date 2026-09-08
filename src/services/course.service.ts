@@ -143,7 +143,8 @@ interface UpdateCourseData {
 export const updateCourse = async (
     courseId: string,
     trainerId: string,
-    data: UpdateCourseData
+    data: UpdateCourseData,
+    userRole?: string
 ) => {
     const course = await prisma.course.findUnique({
         where: {
@@ -155,8 +156,8 @@ export const updateCourse = async (
         throw new Error("Course not found");
     }
 
-    // Only the trainer who owns the course can update it
-    if (course.trainerId !== trainerId) {
+    // Only the trainer who owns the course or an ADMIN can update it
+    if (userRole !== "ADMIN" && course.trainerId !== trainerId) {
         throw new Error("You are not allowed to update this course");
     }
 
@@ -200,7 +201,8 @@ export const updateCourse = async (
 };
 export const deleteCourse = async (
     courseId: string,
-    trainerId: string
+    trainerId: string,
+    userRole?: string
 ) => {
     const course = await prisma.course.findUnique({
         where: {
@@ -212,15 +214,26 @@ export const deleteCourse = async (
         throw new Error("Course not found");
     }
 
-    // Only the trainer who owns the course can delete it
-    if (course.trainerId !== trainerId) {
+    // Only the trainer who owns the course or an ADMIN can delete it
+    if (userRole !== "ADMIN" && course.trainerId !== trainerId) {
         throw new Error("You are not allowed to delete this course");
     }
 
-    await prisma.course.delete({
-        where: {
-            id: courseId,
-        },
+    await prisma.$transaction(async (tx) => {
+        // Delete course-specific progress
+        await tx.progress.deleteMany({ where: { courseId } });
+        // Delete course-specific certificates
+        await tx.certificate.deleteMany({ where: { courseId } });
+        // Delete course-specific enrollments
+        await tx.enrollment.deleteMany({ where: { courseId } });
+        // Disconnect coupons
+        await tx.coupon.updateMany({ where: { courseId }, data: { courseId: null } });
+        // Delete course (cascades modules, lessons, procedures, resources, reviews, gallerySubmissions, businessGuidance)
+        await tx.course.delete({
+            where: {
+                id: courseId,
+            },
+        });
     });
 
     return {
@@ -229,7 +242,8 @@ export const deleteCourse = async (
 };
 export const toggleCoursePublish = async (
     courseId: string,
-    trainerId: string
+    trainerId: string,
+    userRole?: string
 ) => {
     const course = await prisma.course.findUnique({
         where: {
@@ -241,7 +255,7 @@ export const toggleCoursePublish = async (
         throw new Error("Course not found");
     }
 
-    if (course.trainerId !== trainerId) {
+    if (userRole !== "ADMIN" && course.trainerId !== trainerId) {
         throw new Error(
             "You are not allowed to publish this course"
         );

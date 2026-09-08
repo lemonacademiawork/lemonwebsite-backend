@@ -15,7 +15,8 @@ interface CreateBusinessGuidanceData {
 export const createBusinessGuidance = async (
     courseId: string,
     trainerId: string,
-    data: CreateBusinessGuidanceData
+    data: CreateBusinessGuidanceData,
+    userRole?: string
 ) => {
     const course = await prisma.course.findUnique({
         where: {
@@ -27,7 +28,7 @@ export const createBusinessGuidance = async (
         throw new Error("Course not found");
     }
 
-    if (course.trainerId !== trainerId) {
+    if (userRole !== "ADMIN" && course.trainerId !== trainerId) {
         throw new Error(
             "You are not allowed to add business guidance to this course"
         );
@@ -117,7 +118,8 @@ export const updateBusinessGuidance = async (
     courseId: string,
     guidanceId: string,
     trainerId: string,
-    data: UpdateBusinessGuidanceData
+    data: UpdateBusinessGuidanceData,
+    userRole?: string
 ) => {
     const course = await prisma.course.findUnique({
         where: {
@@ -129,7 +131,7 @@ export const updateBusinessGuidance = async (
         throw new Error("Course not found");
     }
 
-    if (course.trainerId !== trainerId) {
+    if (userRole !== "ADMIN" && course.trainerId !== trainerId) {
         throw new Error(
             "You are not allowed to update business guidance in this course"
         );
@@ -206,7 +208,8 @@ export const updateBusinessGuidance = async (
 export const deleteBusinessGuidance = async (
     courseId: string,
     guidanceId: string,
-    trainerId: string
+    trainerId: string,
+    userRole?: string
 ) => {
     const course = await prisma.course.findUnique({
         where: {
@@ -218,7 +221,7 @@ export const deleteBusinessGuidance = async (
         throw new Error("Course not found");
     }
 
-    if (course.trainerId !== trainerId) {
+    if (userRole !== "ADMIN" && course.trainerId !== trainerId) {
         throw new Error(
             "You are not allowed to delete business guidance from this course"
         );
@@ -249,7 +252,8 @@ export const toggleBusinessGuidancePublish = async (
     courseId: string,
     guidanceId: string,
     trainerId: string,
-    isPublished: boolean
+    isPublished: boolean,
+    userRole?: string
 ) => {
     const course = await prisma.course.findUnique({
         where: {
@@ -261,7 +265,7 @@ export const toggleBusinessGuidancePublish = async (
         throw new Error("Course not found");
     }
 
-    if (course.trainerId !== trainerId) {
+    if (userRole !== "ADMIN" && course.trainerId !== trainerId) {
         throw new Error(
             "You are not allowed to publish business guidance in this course"
         );

@@ -9,7 +9,8 @@ interface CreateModuleData {
 export const createCourseModule = async (
     courseId: string,
     trainerId: string,
-    data: CreateModuleData
+    data: CreateModuleData,
+    userRole?: string
 ) => {
     // Check course exists
     const course = await prisma.course.findUnique({
@@ -22,8 +23,8 @@ export const createCourseModule = async (
         throw new Error("Course not found");
     }
 
-    // Only course owner can create modules
-    if (course.trainerId !== trainerId) {
+    // Only course owner or ADMIN can create modules
+    if (userRole !== "ADMIN" && course.trainerId !== trainerId) {
         throw new Error(
             "You are not allowed to add modules to this course"
         );
@@ -73,7 +74,8 @@ export const updateCourseModule = async (
     courseId: string,
     moduleId: string,
     trainerId: string,
-    data: UpdateModuleData
+    data: UpdateModuleData,
+    userRole?: string
 ) => {
     const course = await prisma.course.findUnique({
         where: {
@@ -85,7 +87,7 @@ export const updateCourseModule = async (
         throw new Error("Course not found");
     }
 
-    if (course.trainerId !== trainerId) {
+    if (userRole !== "ADMIN" && course.trainerId !== trainerId) {
         throw new Error(
             "You are not allowed to update modules in this course"
         );
@@ -128,7 +130,8 @@ export const updateCourseModule = async (
 export const deleteCourseModule = async (
     courseId: string,
     moduleId: string,
-    trainerId: string
+    trainerId: string,
+    userRole?: string
 ) => {
     const course = await prisma.course.findUnique({
         where: {
@@ -138,12 +141,11 @@ export const deleteCourseModule = async (
     if (!course) {
         throw new Error("Course not found");
     }
-    if (course.trainerId !== trainerId) {
+    if (userRole !== "ADMIN" && course.trainerId !== trainerId) {
         throw new Error(
             "You are not allowed to delete modules from this course"
         );
     }
-
 
     const module = await prisma.courseModule.findFirst({
         where: {
@@ -169,7 +171,8 @@ export const deleteCourseModule = async (
 export const toggleCourseModulePublish = async (
     courseId: string,
     moduleId: string,
-    trainerId: string
+    trainerId: string,
+    userRole?: string
 ) => {
     const course = await prisma.course.findUnique({
         where: {
@@ -179,12 +182,11 @@ export const toggleCourseModulePublish = async (
     if (!course) {
         throw new Error("Course not found");
     }
-    if (course.trainerId !== trainerId) {
+    if (userRole !== "ADMIN" && course.trainerId !== trainerId) {
         throw new Error(
             "You are not allowed to toggle publish status of modules in this course"
         );
     }
-
 
     const module = await prisma.courseModule.findFirst({
         where: {

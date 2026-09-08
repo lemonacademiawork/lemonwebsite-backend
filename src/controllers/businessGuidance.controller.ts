@@ -65,7 +65,8 @@ export const createBusinessGuidanceController = async (
                 orderIndex,
                 isPublished,
                 moduleId,
-            }
+            },
+            req.user.role
         );
 
         return res.status(201).json({
@@ -212,7 +213,8 @@ export const updateBusinessGuidanceController = async (
                 orderIndex,
                 isPublished,
                 moduleId,
-            }
+            },
+            req.user.role
         );
 
         return res.status(200).json({
@@ -286,7 +288,8 @@ export const deleteBusinessGuidanceController = async (
         const result = await deleteBusinessGuidance(
             courseId,
             guidanceId,
-            req.user.userId
+            req.user.userId,
+            req.user.role
         );
 
         return res.status(200).json({
@@ -362,7 +365,8 @@ export const toggleBusinessGuidancePublishController = async (
                 courseId,
                 guidanceId,
                 req.user.userId,
-                isPublished
+                isPublished,
+                req.user.role
             );
 
         return res.status(200).json({

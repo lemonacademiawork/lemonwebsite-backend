@@ -40,7 +40,8 @@ export const createCourseModuleController = async (
                     orderIndex !== undefined
                         ? Number(orderIndex)
                         : undefined,
-            }
+            },
+            req.user.role
         );
 
         return res.status(201).json({
@@ -161,7 +162,8 @@ export const updateCourseModuleController = async (
                         ? Number(orderIndex)
                         : undefined,
                 isPublished,
-            }
+            },
+            req.user.role
         );
 
         return res.status(200).json({
@@ -231,7 +233,8 @@ export const deleteCourseModuleController = async (
         const result = await deleteCourseModule(
             courseId,
             moduleId,
-            req.user.userId
+            req.user.userId,
+            req.user.role
         );
 
         return res.status(200).json({
@@ -296,7 +299,8 @@ export const toggleCourseModulePublishController = async (
         const module = await toggleCourseModulePublish(
             courseId,
             moduleId,
-            req.user.userId
+            req.user.userId,
+            req.user.role
         );
 
         return res.status(200).json({

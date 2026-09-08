@@ -12,7 +12,8 @@ interface CreateResourceData {
 export const createResource = async (
     courseId: string,
     trainerId: string,
-    data: CreateResourceData
+    data: CreateResourceData,
+    userRole?: string
 ) => {
     const course = await prisma.course.findUnique({
         where: {
@@ -24,7 +25,7 @@ export const createResource = async (
         throw new Error("Course not found");
     }
 
-    if (course.trainerId !== trainerId) {
+    if (userRole !== "ADMIN" && course.trainerId !== trainerId) {
         throw new Error(
             "You are not allowed to add resources to this course"
         );
@@ -125,7 +126,8 @@ export const updateResource = async (
     courseId: string,
     resourceId: string,
     trainerId: string,
-    data: UpdateResourceData
+    data: UpdateResourceData,
+    userRole?: string
 ) => {
     const course = await prisma.course.findUnique({
         where: {
@@ -137,7 +139,7 @@ export const updateResource = async (
         throw new Error("Course not found");
     }
 
-    if (course.trainerId !== trainerId) {
+    if (userRole !== "ADMIN" && course.trainerId !== trainerId) {
         throw new Error(
             "You are not allowed to update resources in this course"
         );
@@ -222,7 +224,8 @@ export const updateResource = async (
 export const deleteResource = async (
     courseId: string,
     resourceId: string,
-    trainerId: string
+    trainerId: string,
+    userRole?: string
 ) => {
     const course = await prisma.course.findUnique({
         where: {
@@ -234,7 +237,7 @@ export const deleteResource = async (
         throw new Error("Course not found");
     }
 
-    if (course.trainerId !== trainerId) {
+    if (userRole !== "ADMIN" && course.trainerId !== trainerId) {
         throw new Error(
             "You are not allowed to delete resources from this course"
         );
