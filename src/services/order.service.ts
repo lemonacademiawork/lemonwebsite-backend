@@ -31,6 +31,19 @@ export const createOrder = async (
     if (!course) {
         throw new Error("Course not found");
     }
+
+    // Prevent buying a course if user already has an active enrollment
+    const existingEnrollment = await prisma.enrollment.findFirst({
+        where: {
+            studentId,
+            courseId: data.courseId,
+            status: "ACTIVE",
+        },
+    });
+    if (existingEnrollment) {
+        throw new Error("You are already registered for this course");
+    }
+
     const existingOrder = await prisma.order.findUnique({
         where: {
             orderNumber: data.orderNumber,

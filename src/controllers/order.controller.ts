@@ -91,6 +91,16 @@ export const createOrderController = async (
             });
         }
 
+        if (
+            message === "You are already registered for this course" ||
+            message === "Student is already enrolled in this course"
+        ) {
+            return res.status(409).json({
+                success: false,
+                message: "Already registered for this course",
+            });
+        }
+
         if (message === "Order number already exists") {
             return res.status(409).json({
                 success: false,

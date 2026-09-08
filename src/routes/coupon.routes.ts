@@ -47,6 +47,7 @@ const router = Router();
  *         description: Invalid or expired coupon
  */
 router.post("/validate", validateCouponController);
+router.post("/apply", validateCouponController);
 
 /**
  * @swagger

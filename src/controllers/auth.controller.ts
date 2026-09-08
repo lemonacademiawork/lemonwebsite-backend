@@ -194,6 +194,16 @@ export const googleCallback = async (
         // Login/create user in our database
         const result = await loginWithGoogle(googleUser);
 
+        const frontendUrl = (process.env.FRONTEND_URL || "https://course-website-f.vercel.app").replace(/\/$/, "");
+        const acceptHeader = req.headers.accept || "";
+
+        // If this was triggered via standard browser redirect, send user back to frontend with tokens
+        if (acceptHeader.includes("text/html") || !req.xhr) {
+            return res.redirect(
+                `${frontendUrl}/oauth-callback?token=${result.accessToken}&refreshToken=${result.refreshToken}&role=${result.user.role}`
+            );
+        }
+
         return res.status(200).json({
             success: true,
             message: "Google login successful",
@@ -206,6 +216,15 @@ export const googleCallback = async (
             error instanceof Error
                 ? error.message
                 : "Google authentication failed";
+
+        const frontendUrl = (process.env.FRONTEND_URL || "https://course-website-f.vercel.app").replace(/\/$/, "");
+        const acceptHeader = req.headers.accept || "";
+
+        if (acceptHeader.includes("text/html") || !req.xhr) {
+            return res.redirect(
+                `${frontendUrl}/login?error=${encodeURIComponent(message)}`
+            );
+        }
 
         return res.status(500).json({
             success: false,

@@ -8,6 +8,7 @@ import {
 } from "@prisma/client";
 import { razorpayInstance } from "../config/razorpay";
 import crypto from "crypto";
+import { validateCoupon, recordCouponUsage } from "./coupon.service";
 
 interface CreatePaymentInput {
     orderId: string;
@@ -151,6 +152,8 @@ interface CreateRazorpayOrderInput {
     courseId?: string;
     orderId?: string;
     appliedReferralCode?: string;
+    appliedCouponCode?: string;
+    couponCode?: string;
 }
 
 export const createRazorpayOrder = async (
@@ -204,7 +207,7 @@ export const createRazorpayOrder = async (
         throw new Error("Course not found");
     }
 
-    // 3. Verify student is not already actively enrolled
+    // 3. Verify student is not already actively enrolled (One purchase per user)
     const activeEnrollment = await prisma.enrollment.findFirst({
         where: {
             studentId,
@@ -214,7 +217,7 @@ export const createRazorpayOrder = async (
     });
 
     if (activeEnrollment) {
-        throw new Error("Student is already enrolled in this course");
+        throw new Error("You are already registered for this course");
     }
 
     // 4. Validate referral code if provided
@@ -233,23 +236,42 @@ export const createRazorpayOrder = async (
         }
     }
 
-    // 5. Calculate correct payable price from DB
-    const finalPrice = course.discountedPrice
+    // 5. Calculate base price from DB
+    const basePrice = course.discountedPrice
         ? Number(course.discountedPrice)
         : Number(course.price);
 
+    let finalPrice = basePrice;
+    let validCouponCode = data.appliedCouponCode || data.couponCode || existingOrder?.appliedCouponCode || undefined;
+
+    // 6. Validate & apply coupon discount if provided
+    if (validCouponCode) {
+        try {
+            const couponResult = await validateCoupon({
+                code: validCouponCode,
+                courseId: course.id,
+                amount: basePrice,
+                userId: studentId,
+            });
+            finalPrice = couponResult.finalAmount;
+            validCouponCode = couponResult.coupon.code;
+        } catch (couponErr) {
+            throw new Error(couponErr instanceof Error ? couponErr.message : "Invalid coupon code");
+        }
+    }
+
     const amountInPaise = Math.round(finalPrice * 100);
 
-    // 6. Generate or use existing orderNumber
+    // 7. Generate or use existing orderNumber
     const orderNumber =
         existingOrder?.orderNumber ||
         `ORD-${Date.now()}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
 
-    // 7. Create Razorpay order
+    // 8. Create Razorpay order
     let razorpayOrder;
     try {
         razorpayOrder = await razorpayInstance.orders.create({
-            amount: amountInPaise,
+            amount: Math.max(100, amountInPaise), // Razorpay minimum is 100 paise (₹1)
             currency: "INR",
             receipt: orderNumber.substring(0, 40),
             notes: {
@@ -258,6 +280,7 @@ export const createRazorpayOrder = async (
                 studentId,
                 orderNumber,
                 appliedReferralCode: referralCode || "",
+                appliedCouponCode: validCouponCode || "",
             },
         });
     } catch (rzpErr) {
@@ -269,7 +292,7 @@ export const createRazorpayOrder = async (
         );
     }
 
-    // 8. Create or update internal Order record
+    // 9. Create or update internal Order record
     let dbOrder;
     if (existingOrder) {
         dbOrder = await prisma.order.update({
@@ -278,6 +301,7 @@ export const createRazorpayOrder = async (
                 razorpayOrderId: razorpayOrder.id,
                 amount: finalPrice,
                 appliedReferralCode: referralCode,
+                appliedCouponCode: validCouponCode,
                 status: OrderStatus.PENDING,
             },
         });
@@ -292,6 +316,7 @@ export const createRazorpayOrder = async (
                 status: OrderStatus.PENDING,
                 razorpayOrderId: razorpayOrder.id,
                 appliedReferralCode: referralCode,
+                appliedCouponCode: validCouponCode,
             },
         });
     }

@@ -11,20 +11,23 @@ import {
 
 export const validateCouponController = async (req: Request, res: Response) => {
     try {
-        const { code, courseId, amount } = req.body;
+        const { code, couponCode, coupon, courseId, amount, purchaseAmount, price } = req.body;
         const userId = req.user?.userId;
 
-        if (!code || amount === undefined) {
+        const effectiveCode = code || couponCode || coupon;
+        const effectiveAmount = amount ?? purchaseAmount ?? price;
+
+        if (!effectiveCode) {
             return res.status(400).json({
                 success: false,
-                message: "Coupon code and purchase amount are required",
+                message: "Coupon code is required",
             });
         }
 
         const result = await validateCoupon({
-            code,
+            code: effectiveCode,
             courseId,
-            amount: Number(amount),
+            amount: effectiveAmount !== undefined ? Number(effectiveAmount) : 0,
             userId,
         });
 

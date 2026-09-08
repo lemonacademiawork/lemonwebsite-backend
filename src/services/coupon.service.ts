@@ -39,20 +39,34 @@ export interface UpdateCouponInput {
 }
 
 export const validateCoupon = async (input: ValidateCouponInput) => {
-    const { code, courseId, amount, userId } = input;
+    const { code, courseId, userId } = input;
+    let amount = input.amount;
 
     if (!code || typeof code !== "string" || !code.trim()) {
         throw new Error("Coupon code is required");
     }
 
-    if (amount === undefined || amount === null || isNaN(Number(amount)) || Number(amount) <= 0) {
+    // If amount is not provided or 0, attempt to get it from courseId
+    if ((amount === undefined || amount === null || isNaN(Number(amount)) || Number(amount) <= 0) && courseId) {
+        const course = await prisma.course.findUnique({
+            where: { id: courseId },
+        });
+        if (course) {
+            amount = course.discountedPrice ? Number(course.discountedPrice) : Number(course.price);
+        }
+    }
+
+    if (amount === undefined || amount === null || isNaN(Number(amount)) || Number(amount) < 0) {
         throw new Error("Valid course purchase amount is required");
     }
 
-    const normalizedCode = code.trim().toUpperCase();
+    const trimmedCode = code.trim();
 
-    const coupon = await prisma.coupon.findUnique({
-        where: { code: normalizedCode },
+    // Look up coupon case-insensitively
+    const coupon = await prisma.coupon.findFirst({
+        where: {
+            code: { equals: trimmedCode, mode: "insensitive" },
+        },
         include: {
             course: {
                 select: { id: true, title: true, slug: true },
@@ -70,7 +84,8 @@ export const validateCoupon = async (input: ValidateCouponInput) => {
 
     const now = new Date();
 
-    if (coupon.startDate && coupon.startDate > now) {
+    // Allow 2-minute clock skew tolerance
+    if (coupon.startDate && coupon.startDate.getTime() > (now.getTime() + 2 * 60 * 1000)) {
         throw new Error("This coupon promotion has not started yet");
     }
 
@@ -84,7 +99,7 @@ export const validateCoupon = async (input: ValidateCouponInput) => {
 
     const parsedAmount = Number(amount);
     const minOrder = coupon.minOrderAmount ? Number(coupon.minOrderAmount) : 0;
-    if (parsedAmount < minOrder) {
+    if (parsedAmount > 0 && parsedAmount < minOrder) {
         throw new Error(`Minimum order amount for this coupon is ₹${minOrder}`);
     }
 

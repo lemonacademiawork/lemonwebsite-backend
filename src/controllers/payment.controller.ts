@@ -66,7 +66,7 @@ export const createRazorpayOrderController = async (
             });
         }
 
-        const { courseId, orderId, appliedReferralCode } = req.body;
+        const { courseId, orderId, appliedReferralCode, appliedCouponCode, couponCode, coupon } = req.body;
 
         if (!courseId && !orderId) {
             return res.status(400).json({
@@ -81,6 +81,7 @@ export const createRazorpayOrderController = async (
                 courseId,
                 orderId,
                 appliedReferralCode,
+                appliedCouponCode: appliedCouponCode || couponCode || coupon,
             }
         );
 
@@ -108,12 +109,13 @@ export const createRazorpayOrderController = async (
         }
 
         if (
+            message === "You are already registered for this course" ||
             message === "Student is already enrolled in this course" ||
             message === "Order is already paid"
         ) {
             return res.status(409).json({
                 success: false,
-                message,
+                message: "Already registered for this course",
             });
         }
 
