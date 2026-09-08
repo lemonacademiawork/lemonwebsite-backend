@@ -140,6 +140,86 @@ export const registerUser = async (data: RegisterData) => {
 };
 
 /* =========================================================
+   PHONE & USER LOOKUP HELPER
+========================================================= */
+
+// In-memory fallback OTP storage for pre-registration or rapid OTP verification
+interface StoredOtpInfo {
+    hash: string;
+    expiresAt: number;
+    phone?: string;
+    email?: string;
+}
+export const otpMemoryCache = new Map<string, StoredOtpInfo>();
+
+export const saveStandaloneOtp = async (identifier: string, otpCode: string) => {
+    const hash = await bcrypt.hash(otpCode, 10);
+    const expiresAt = Date.now() + 15 * 60 * 1000;
+    const trimmed = identifier.trim().toLowerCase();
+    const digits = trimmed.replace(/\D/g, "");
+    const last10 = digits.slice(-10);
+
+    otpMemoryCache.set(trimmed, { hash, expiresAt, phone: identifier });
+    if (digits) otpMemoryCache.set(digits, { hash, expiresAt, phone: identifier });
+    if (last10) otpMemoryCache.set(last10, { hash, expiresAt, phone: identifier });
+};
+
+export const findUserByIdentifier = async (identifier: string, options?: { includeEnrollments?: boolean }) => {
+    if (!identifier || typeof identifier !== "string" || !identifier.trim()) {
+        return null;
+    }
+
+    const trimmed = identifier.trim();
+    const includes = {
+        studentProfile: true,
+        trainerProfile: true,
+        ...(options?.includeEnrollments ? {
+            enrollments: {
+                include: {
+                    course: {
+                        include: {
+                            category: true,
+                        },
+                    },
+                },
+            },
+        } : {}),
+    };
+
+    if (trimmed.includes("@")) {
+        return prisma.user.findFirst({
+            where: { email: trimmed.toLowerCase() },
+            include: includes,
+        });
+    }
+
+    const digits = trimmed.replace(/\D/g, "");
+    const last10 = digits.slice(-10);
+
+    const phoneVariants = Array.from(
+        new Set([
+            trimmed,
+            digits,
+            `+${digits}`,
+            last10,
+            `91${last10}`,
+            `+91${last10}`,
+            `0${last10}`,
+        ].filter(Boolean))
+    );
+
+    return prisma.user.findFirst({
+        where: {
+            OR: [
+                ...phoneVariants.map((p) => ({ phone: p })),
+                ...(last10.length === 10 ? [{ phone: { endsWith: last10 } }] : []),
+            ],
+        },
+        include: includes,
+    });
+};
+
+/* =========================================================
    LOGIN (PHONE OR EMAIL)
 ========================================================= */
 
@@ -154,24 +234,7 @@ export const loginUser = async (
     const trimmed = identifier.trim();
     const isEmail = trimmed.includes("@");
 
-    let user = await prisma.user.findFirst({
-        where: isEmail
-            ? { email: trimmed.toLowerCase() }
-            : { phone: trimmed },
-        include: {
-            studentProfile: true,
-            trainerProfile: true,
-            enrollments: {
-                include: {
-                    course: {
-                        include: {
-                            category: true,
-                        },
-                    },
-                },
-            },
-        },
-    });
+    let user = await findUserByIdentifier(trimmed, { includeEnrollments: true });
 
     if (!user) {
         throw new Error(isEmail ? "Invalid email or password" : "Invalid phone number or password");
@@ -590,69 +653,7 @@ export const logoutUser = async (
     };
 };
 
-/* =========================================================
-   PHONE & USER LOOKUP HELPER
-========================================================= */
 
-// In-memory fallback OTP storage for pre-registration or rapid OTP verification
-interface StoredOtpInfo {
-    hash: string;
-    expiresAt: number;
-    phone?: string;
-    email?: string;
-}
-const otpMemoryCache = new Map<string, StoredOtpInfo>();
-
-export const saveStandaloneOtp = async (identifier: string, otpCode: string) => {
-    const hash = await bcrypt.hash(otpCode, 10);
-    const expiresAt = Date.now() + 15 * 60 * 1000;
-    const trimmed = identifier.trim().toLowerCase();
-    const digits = trimmed.replace(/\D/g, "");
-    const last10 = digits.slice(-10);
-
-    otpMemoryCache.set(trimmed, { hash, expiresAt, phone: identifier });
-    if (digits) otpMemoryCache.set(digits, { hash, expiresAt, phone: identifier });
-    if (last10) otpMemoryCache.set(last10, { hash, expiresAt, phone: identifier });
-};
-
-export const findUserByIdentifier = async (identifier: string) => {
-    if (!identifier || typeof identifier !== "string" || !identifier.trim()) {
-        return null;
-    }
-
-    const trimmed = identifier.trim();
-    if (trimmed.includes("@")) {
-        return prisma.user.findFirst({
-            where: { email: trimmed.toLowerCase() },
-            include: { studentProfile: true, trainerProfile: true },
-        });
-    }
-
-    const digits = trimmed.replace(/\D/g, "");
-    const last10 = digits.slice(-10);
-
-    const phoneVariants = Array.from(
-        new Set([
-            trimmed,
-            digits,
-            `+${digits}`,
-            last10,
-            `91${last10}`,
-            `+91${last10}`,
-            `0${last10}`,
-        ].filter(Boolean))
-    );
-
-    return prisma.user.findFirst({
-        where: {
-            OR: [
-                ...phoneVariants.map((p) => ({ phone: p })),
-                ...(last10.length === 10 ? [{ phone: { endsWith: last10 } }] : []),
-            ],
-        },
-        include: { studentProfile: true, trainerProfile: true },
-    });
-};
 
 /* =========================================================
    FORGOT PASSWORD (PHONE OR EMAIL)
