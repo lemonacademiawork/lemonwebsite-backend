@@ -10,6 +10,7 @@ import {
     getMe,
     forgotPasswordController,
     resetPasswordController,
+    sendWhatsAppOtpController,
 } from "../controllers/auth.controller";
 import { authenticate } from "../middleware/auth.middleware";
 const router = Router();
@@ -312,9 +313,39 @@ router.post(
  *                   type: string
  *                   example: Failed to reset password
  */
-router.post(
-    "/reset-password",
-    resetPasswordController
-);
+/**
+ * @swagger
+ * /api/v1/auth/whatsapp/send-otp:
+ *   post:
+ *     summary: Send 6-digit WhatsApp OTP verification code via ZoePact
+ *     tags:
+ *       - Authentication
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - phone
+ *             properties:
+ *               phone:
+ *                 type: string
+ *                 description: Mobile number with or without country code (e.g. 9876543210 or 919876543210)
+ *                 example: "9876543210"
+ *               code:
+ *                 type: string
+ *                 description: Optional specific 6-digit OTP code (otherwise randomly generated)
+ *                 example: "262626"
+ *     responses:
+ *       200:
+ *         description: WhatsApp OTP sent successfully
+ *       400:
+ *         description: Invalid input or missing phone number
+ *       502:
+ *         description: ZoePact gateway delivery failed
+ */
+router.post("/whatsapp/send-otp", sendWhatsAppOtpController);
+router.post("/whatsapp-otp", sendWhatsAppOtpController);
 
 export default router;

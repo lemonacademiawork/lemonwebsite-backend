@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { registerUser, loginUser, refreshUser, logoutUser, resetPassword, forgotPassword, loginWithGoogle } from "../services/auth.service";
 import { googleClient } from "../config/google";
+import { sendWhatsAppOTP } from "../services/whatsapp.service";
 
 export const register = async (req: Request, res: Response) => {
     try {
@@ -328,6 +329,49 @@ export const resetPasswordController = async (
         return res.status(500).json({
             success: false,
             message: "Failed to reset password",
+        });
+    }
+};
+
+export const sendWhatsAppOtpController = async (
+    req: Request,
+    res: Response
+) => {
+    try {
+        const { phone, phoneNumber, code, templateId } = req.body;
+        const targetPhone = phone || phoneNumber;
+
+        if (!targetPhone) {
+            return res.status(400).json({
+                success: false,
+                message: "Phone number is required",
+            });
+        }
+
+        const otpCode = code ? String(code) : Math.floor(100000 + Math.random() * 900000).toString();
+        const result = await sendWhatsAppOTP(targetPhone, otpCode, templateId);
+
+        if (!result.success) {
+            return res.status(502).json({
+                success: false,
+                message: result.error || "Failed to send WhatsApp message via ZoePact",
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: "WhatsApp OTP sent successfully",
+            data: {
+                phone: targetPhone,
+                code: otpCode,
+                result: result.data,
+            },
+        });
+    } catch (error) {
+        const message = error instanceof Error ? error.message : "Failed to send WhatsApp OTP";
+        return res.status(500).json({
+            success: false,
+            message,
         });
     }
 };

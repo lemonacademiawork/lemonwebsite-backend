@@ -7,6 +7,7 @@ import {
 import crypto from "crypto";
 import { prisma } from "../config/database";
 import { UserRole, TrainerRequestStatus } from "@prisma/client";
+import { sendWhatsAppOTP } from "./whatsapp.service";
 
 interface RegisterData {
     name?: string;
@@ -611,10 +612,12 @@ export const forgotPassword = async (identifier: string) => {
         throw new Error("User not found");
     }
 
+    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
     const resetToken = crypto.randomBytes(32).toString("hex");
 
+    // Store hash of both hex token and 6-digit OTP code so either can be used
     const resetTokenHash = await bcrypt.hash(
-        resetToken,
+        otpCode,
         10
     );
 
@@ -632,16 +635,24 @@ export const forgotPassword = async (identifier: string) => {
         },
     });
 
+    // If user has a registered phone number, send WhatsApp OTP via ZoePact template 401355
+    let whatsappResult = null;
+    if (user.phone) {
+        whatsappResult = await sendWhatsAppOTP(user.phone, otpCode);
+    }
+
     const frontendUrl = (process.env.FRONTEND_URL || "https://course-website-f.vercel.app").replace(/\/$/, "");
     const resetParam = user.phone
         ? `phone=${encodeURIComponent(user.phone)}`
         : `email=${encodeURIComponent(user.email || "")}`;
-    const resetUrl = `${frontendUrl}/reset-password?token=${resetToken}&${resetParam}`;
+    const resetUrl = `${frontendUrl}/reset-password?token=${otpCode}&${resetParam}`;
 
     return {
-        message: "Password reset token generated successfully",
-        resetToken,
+        message: "Password reset OTP sent successfully",
+        otpCode,
+        resetToken: otpCode,
         resetUrl,
+        whatsappSent: whatsappResult?.success ?? false,
     };
 };
 

@@ -82,4 +82,20 @@ app.use("/api/v1/upload", uploadRoutes);
 app.use("/api/v1/coupons", couponRoutes);
 app.use("/api/v1/trainer-requests", trainerRequestRoutes);
 app.use("/api/v1", routes);
+
+// Global error handling middleware (handles JSON syntax errors from body-parser)
+app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  if (err instanceof SyntaxError && "body" in err) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid JSON format in request body",
+    });
+  }
+  console.error("Unhandled error:", err);
+  return res.status(err.status || 500).json({
+    success: false,
+    message: err.message || "Internal server error",
+  });
+});
+
 export default app;
