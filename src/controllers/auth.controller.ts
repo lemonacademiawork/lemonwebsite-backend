@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { registerUser, loginUser, refreshUser, logoutUser, resetPassword, forgotPassword, loginWithGoogle, verifyOtp } from "../services/auth.service";
+import { registerUser, loginUser, refreshUser, logoutUser, resetPassword, forgotPassword, loginWithGoogle, verifyOtp, saveStandaloneOtp } from "../services/auth.service";
 import { googleClient } from "../config/google";
 import { sendWhatsAppOTP } from "../services/whatsapp.service";
 
@@ -355,8 +355,9 @@ export const sendWhatsAppOtpController = async (
         // If user exists, hash and save OTP to user account
         const user = await forgotPassword(cleanPhone).catch(() => null);
 
-        // If user wasn't processed by forgotPassword, send direct template
+        // If user wasn't processed by forgotPassword, send direct template and save in memory cache
         if (!user) {
+            await saveStandaloneOtp(cleanPhone, otpCode);
             const result = await sendWhatsAppOTP(cleanPhone, otpCode, templateId);
             if (!result.success) {
                 return res.status(502).json({
