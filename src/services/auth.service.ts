@@ -6,6 +6,7 @@ import {
 } from "../utils/jwt";
 import crypto from "crypto";
 import { prisma } from "../config/database";
+import { UserRole, TrainerRequestStatus } from "@prisma/client";
 
 interface RegisterData {
     name?: string;
@@ -73,12 +74,27 @@ export const registerUser = async (data: RegisterData) => {
     const referralCode =
         `LEMON-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
 
+    // Check if there is an approved trainer request matching this phone or email
+    const approvedRequest = await prisma.trainerRequest.findFirst({
+        where: {
+            status: TrainerRequestStatus.APPROVED,
+            OR: [
+                ...(trimmedPhone ? [{ phone: trimmedPhone }] : []),
+                ...(trimmedEmail ? [{ email: trimmedEmail }] : []),
+            ],
+        },
+        orderBy: { updatedAt: "desc" },
+    });
+
+    const roleToAssign = approvedRequest ? UserRole.TRAINER : UserRole.STUDENT;
+
     const user = await prisma.user.create({
         data: {
-            name: name || "Student",
+            name: name || (approvedRequest?.name ?? "Student"),
             phone: trimmedPhone,
             email: trimmedEmail,
             passwordHash: hashedPassword,
+            role: roleToAssign,
 
             studentProfile: {
                 create: {
@@ -87,12 +103,32 @@ export const registerUser = async (data: RegisterData) => {
                     referralCode,
                 },
             },
+
+            ...(approvedRequest ? {
+                trainerProfile: {
+                    create: {
+                        name: name || approvedRequest.name || "Trainer",
+                        phone: trimmedPhone,
+                        expertise: approvedRequest.expertise,
+                        bio: approvedRequest.bio || `Instructor specializing in ${approvedRequest.expertise}`,
+                        designation: "Instructor at Lemon Academy",
+                    },
+                },
+            } : {}),
         },
 
         include: {
             studentProfile: true,
+            trainerProfile: true,
         },
     });
+
+    if (approvedRequest && !approvedRequest.userId) {
+        await prisma.trainerRequest.update({
+            where: { id: approvedRequest.id },
+            data: { userId: user.id },
+        });
+    }
 
     const {
         passwordHash: _passwordHash,
@@ -117,7 +153,7 @@ export const loginUser = async (
     const trimmed = identifier.trim();
     const isEmail = trimmed.includes("@");
 
-    const user = await prisma.user.findFirst({
+    let user = await prisma.user.findFirst({
         where: isEmail
             ? { email: trimmed.toLowerCase() }
             : { phone: trimmed },
@@ -151,6 +187,57 @@ export const loginUser = async (
 
     if (!isPasswordValid) {
         throw new Error(isEmail ? "Invalid email or password" : "Invalid phone number or password");
+    }
+
+    // Auto-promote to TRAINER if user has an approved trainer request
+    if (user.role === UserRole.STUDENT) {
+        const approvedRequest = await prisma.trainerRequest.findFirst({
+            where: {
+                status: TrainerRequestStatus.APPROVED,
+                OR: [
+                    { userId: user.id },
+                    ...(user.phone ? [{ phone: user.phone }] : []),
+                    ...(user.email ? [{ email: user.email }] : []),
+                ],
+            },
+            orderBy: { updatedAt: "desc" },
+        });
+
+        if (approvedRequest) {
+            // Update user role to TRAINER
+            await prisma.user.update({
+                where: { id: user.id },
+                data: { role: UserRole.TRAINER },
+            });
+
+            // Ensure trainerProfile exists
+            let trainerProfile = user.trainerProfile;
+            if (!trainerProfile) {
+                trainerProfile = await prisma.trainerProfile.create({
+                    data: {
+                        userId: user.id,
+                        name: approvedRequest.name || user.name || "Trainer",
+                        phone: approvedRequest.phone || user.phone,
+                        expertise: approvedRequest.expertise,
+                        bio: approvedRequest.bio || `Instructor specializing in ${approvedRequest.expertise}`,
+                        designation: "Instructor at Lemon Academy",
+                    },
+                });
+            }
+
+            if (!approvedRequest.userId) {
+                await prisma.trainerRequest.update({
+                    where: { id: approvedRequest.id },
+                    data: { userId: user.id },
+                });
+            }
+
+            user = {
+                ...user,
+                role: UserRole.TRAINER,
+                trainerProfile,
+            };
+        }
     }
 
     const accessToken = generateAccessToken(
@@ -288,8 +375,59 @@ export const loginWithGoogle = async (
 
             include: {
                 studentProfile: true,
+                trainerProfile: true,
             },
         });
+    }
+
+    // Auto-promote to TRAINER if user has an approved trainer request
+    if (user.role === UserRole.STUDENT) {
+        const approvedRequest = await prisma.trainerRequest.findFirst({
+            where: {
+                status: TrainerRequestStatus.APPROVED,
+                OR: [
+                    { userId: user.id },
+                    ...(user.email ? [{ email: user.email }] : []),
+                ],
+            },
+            orderBy: { updatedAt: "desc" },
+        });
+
+        if (approvedRequest) {
+            await prisma.user.update({
+                where: { id: user.id },
+                data: { role: UserRole.TRAINER },
+            });
+
+            let trainerProfile = await prisma.trainerProfile.findUnique({
+                where: { userId: user.id },
+            });
+
+            if (!trainerProfile) {
+                trainerProfile = await prisma.trainerProfile.create({
+                    data: {
+                        userId: user.id,
+                        name: approvedRequest.name || user.name || "Trainer",
+                        phone: approvedRequest.phone || user.phone,
+                        expertise: approvedRequest.expertise,
+                        bio: approvedRequest.bio || `Instructor specializing in ${approvedRequest.expertise}`,
+                        designation: "Instructor at Lemon Academy",
+                    },
+                });
+            }
+
+            if (!approvedRequest.userId) {
+                await prisma.trainerRequest.update({
+                    where: { id: approvedRequest.id },
+                    data: { userId: user.id },
+                });
+            }
+
+            user = {
+                ...user,
+                role: UserRole.TRAINER,
+            };
+        }
     }
 
     /*

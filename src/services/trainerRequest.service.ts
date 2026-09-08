@@ -236,6 +236,63 @@ export const updateTrainerRequestStatus = async (
         throw new Error("Trainer application request not found");
     }
 
+    let effectiveUserId = request.userId;
+
+    // If APPROVED, automatically promote user to TRAINER role and create/update TrainerProfile
+    if (data.status === TrainerRequestStatus.APPROVED) {
+        let targetUser = effectiveUserId
+            ? await prisma.user.findUnique({ where: { id: effectiveUserId } })
+            : null;
+
+        if (!targetUser && request.phone) {
+            targetUser = await prisma.user.findFirst({
+                where: { phone: request.phone.trim() },
+            });
+        }
+
+        if (!targetUser && request.email) {
+            targetUser = await prisma.user.findFirst({
+                where: { email: request.email.trim().toLowerCase() },
+            });
+        }
+
+        if (targetUser) {
+            effectiveUserId = targetUser.id;
+
+            // Upgrade user role to TRAINER
+            await prisma.user.update({
+                where: { id: targetUser.id },
+                data: { role: UserRole.TRAINER },
+            });
+
+            // Ensure TrainerProfile exists
+            const existingTrainerProfile = await prisma.trainerProfile.findUnique({
+                where: { userId: targetUser.id },
+            });
+
+            if (!existingTrainerProfile) {
+                await prisma.trainerProfile.create({
+                    data: {
+                        userId: targetUser.id,
+                        name: request.name || targetUser.name || "Trainer",
+                        phone: request.phone || targetUser.phone,
+                        expertise: request.expertise,
+                        bio: request.bio || `Instructor specializing in ${request.expertise}`,
+                        designation: "Instructor at Lemon Academy",
+                    },
+                });
+            } else {
+                await prisma.trainerProfile.update({
+                    where: { userId: targetUser.id },
+                    data: {
+                        ...(request.expertise ? { expertise: request.expertise } : {}),
+                        ...(request.bio ? { bio: request.bio } : {}),
+                    },
+                });
+            }
+        }
+    }
+
     const updated = await prisma.trainerRequest.update({
         where: { id },
         data: {
@@ -243,6 +300,7 @@ export const updateTrainerRequestStatus = async (
             adminNotes: data.adminNotes,
             reviewedBy: adminId,
             reviewedAt: new Date(),
+            ...(effectiveUserId ? { userId: effectiveUserId } : {}),
         },
         include: {
             user: {
@@ -253,35 +311,6 @@ export const updateTrainerRequestStatus = async (
             },
         },
     });
-
-    // If APPROVED and user exists, automatically promote to TRAINER role and create TrainerProfile
-    if (data.status === TrainerRequestStatus.APPROVED && request.userId) {
-        const userId = request.userId;
-
-        // Upgrade user role to TRAINER
-        await prisma.user.update({
-            where: { id: userId },
-            data: { role: UserRole.TRAINER },
-        });
-
-        // Ensure TrainerProfile exists
-        const existingTrainerProfile = await prisma.trainerProfile.findUnique({
-            where: { userId },
-        });
-
-        if (!existingTrainerProfile) {
-            await prisma.trainerProfile.create({
-                data: {
-                    userId,
-                    name: request.name,
-                    phone: request.phone,
-                    expertise: request.expertise,
-                    bio: request.bio || `Instructor specializing in ${request.expertise}`,
-                    designation: "Instructor at Lemon Academy",
-                },
-            });
-        }
-    }
 
     return updated;
 };
