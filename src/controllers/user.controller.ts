@@ -39,6 +39,7 @@ export const updateMe = async (req: Request, res: Response) => {
         const {
             name,
             phone,
+            email,
             bio,
             avatarUrl,
         } = req.body;
@@ -48,6 +49,7 @@ export const updateMe = async (req: Request, res: Response) => {
             {
                 name,
                 phone,
+                email,
                 bio,
                 avatarUrl,
             }

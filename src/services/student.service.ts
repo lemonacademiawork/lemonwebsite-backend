@@ -29,6 +29,7 @@ export const updateMyProfile = async (
     data: {
         name?: string;
         phone?: string | null;
+        email?: string | null;
         avatarUrl?: string | null;
         bio?: string | null;
     }
@@ -43,6 +44,12 @@ export const updateMyProfile = async (
         throw new Error("Student profile not found");
     }
 
+    const userUpdateData: { name?: string; phone?: string; email?: string } = {};
+
+    if (data.name !== undefined && data.name !== null) {
+        userUpdateData.name = data.name;
+    }
+
     if (data.phone) {
         const trimmedPhone = data.phone.trim();
         const existing = await prisma.user.findFirst({
@@ -54,18 +61,27 @@ export const updateMyProfile = async (
         if (existing) {
             throw new Error("Phone number is already in use by another account");
         }
+        userUpdateData.phone = trimmedPhone;
+    }
 
-        await prisma.user.update({
-            where: { id: userId },
-            data: {
-                phone: trimmedPhone,
-                ...(data.name !== undefined && { name: data.name }),
+    if (data.email) {
+        const trimmedEmail = data.email.trim().toLowerCase();
+        const existingEmail = await prisma.user.findFirst({
+            where: {
+                email: trimmedEmail,
+                NOT: { id: userId },
             },
         });
-    } else if (data.name !== undefined) {
+        if (existingEmail) {
+            throw new Error("Email address is already in use by another account");
+        }
+        userUpdateData.email = trimmedEmail;
+    }
+
+    if (Object.keys(userUpdateData).length > 0) {
         await prisma.user.update({
             where: { id: userId },
-            data: { name: data.name },
+            data: userUpdateData,
         });
     }
 

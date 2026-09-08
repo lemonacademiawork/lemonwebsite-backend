@@ -55,13 +55,13 @@ Roles supported: `STUDENT`, `TRAINER`, `ADMIN`.
 - **Path**: `/api/v1/auth/register`
 - **Auth**: Public
 
-#### Request Body
+#### Request Body (Phone and/or Email)
 ```json
 {
   "name": "Sejal Agarwal",
   "phone": "9876543210",
-  "password": "Password123!",
-  "email": "sejal@example.com"
+  "email": "sejal@example.com",
+  "password": "Password123!"
 }
 ```
 
@@ -88,15 +88,33 @@ Roles supported: `STUDENT`, `TRAINER`, `ADMIN`.
 
 ---
 
-### 1.2 Login
+### 1.2 Login (Phone OR Email)
 - **Method**: `POST`
 - **Path**: `/api/v1/auth/login`
 - **Auth**: Public
 
-#### Request Body
+Users can log in with **Phone Number**, **Email Address**, or a generic **`identifier`** field:
+
+#### Option A: Log in with Phone Number
 ```json
 {
   "phone": "9876543210",
+  "password": "Password123!"
+}
+```
+
+#### Option B: Log in with Email Address
+```json
+{
+  "email": "student@example.com",
+  "password": "Password123!"
+}
+```
+
+#### Option C: Log in with Identifier (supports either Phone or Email automatically)
+```json
+{
+  "identifier": "admin@lemonacademy.com",
   "password": "Password123!"
 }
 ```
@@ -188,15 +206,21 @@ Roles supported: `STUDENT`, `TRAINER`, `ADMIN`.
 
 ---
 
-### 1.6 Forgot Password (Generate Direct Reset Link)
+### 1.6 Forgot Password (Phone OR Email)
 - **Method**: `POST`
 - **Path**: `/api/v1/auth/forgot-password`
 - **Auth**: Public
 
-#### Request Body
+#### Request Body (by Phone, Email, or Identifier)
 ```json
 {
   "phone": "9876543210"
+}
+```
+*or*
+```json
+{
+  "email": "student@example.com"
 }
 ```
 

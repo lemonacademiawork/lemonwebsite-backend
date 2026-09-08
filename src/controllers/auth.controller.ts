@@ -4,12 +4,12 @@ import { googleClient } from "../config/google";
 
 export const register = async (req: Request, res: Response) => {
     try {
-        const { phone, password } = req.body;
+        const { phone, email, password } = req.body;
 
-        if (!phone || !password) {
+        if ((!phone && !email) || !password) {
             return res.status(400).json({
                 success: false,
-                message: "Phone number and password are required",
+                message: "Phone number or email, and password are required",
             });
         }
 
@@ -32,16 +32,17 @@ export const register = async (req: Request, res: Response) => {
 
 export const login = async (req: Request, res: Response) => {
     try {
-        const { phone, password } = req.body;
+        const { phone, email, identifier, password } = req.body;
+        const loginIdentifier = phone || email || identifier;
 
-        if (!phone || !password) {
+        if (!loginIdentifier || !password) {
             return res.status(400).json({
                 success: false,
-                message: "Phone number and password are required",
+                message: "Phone number or email, and password are required",
             });
         }
 
-        const result = await loginUser(phone, password);
+        const result = await loginUser(loginIdentifier, password);
 
         return res.status(200).json({
             success: true,
@@ -218,16 +219,17 @@ export const forgotPasswordController = async (
     res: Response
 ) => {
     try {
-        const { phone } = req.body;
+        const { phone, email, identifier } = req.body;
+        const resetIdentifier = phone || email || identifier;
 
-        if (!phone) {
+        if (!resetIdentifier) {
             return res.status(400).json({
                 success: false,
-                message: "Phone number is required",
+                message: "Phone number or email is required",
             });
         }
 
-        const result = await forgotPassword(phone);
+        const result = await forgotPassword(resetIdentifier);
 
         return res.status(200).json({
             success: true,

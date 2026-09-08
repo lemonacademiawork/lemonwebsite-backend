@@ -18,7 +18,7 @@ const router = Router();
  * @swagger
  * /api/v1/auth/register:
  *   post:
- *     summary: Register a new student account
+ *     summary: Register a new student account (using phone and/or email)
  *     tags:
  *       - Authentication
  *     requestBody:
@@ -28,7 +28,6 @@ const router = Router();
  *           schema:
  *             type: object
  *             required:
- *               - phone
  *               - password
  *             properties:
  *               name:
@@ -47,7 +46,7 @@ const router = Router();
  *       201:
  *         description: User registered successfully
  *       400:
- *         description: Invalid input or phone number already registered
+ *         description: Invalid input or phone/email already registered
  */
 router.post("/register", register);
 
@@ -55,7 +54,7 @@ router.post("/register", register);
  * @swagger
  * /api/v1/auth/login:
  *   post:
- *     summary: Log in with phone number and password
+ *     summary: Log in with phone number OR email address and password
  *     tags:
  *       - Authentication
  *     requestBody:
@@ -65,20 +64,28 @@ router.post("/register", register);
  *           schema:
  *             type: object
  *             required:
- *               - phone
  *               - password
  *             properties:
+ *               identifier:
+ *                 type: string
+ *                 description: Phone number or email address
+ *                 example: "admin@lemonacademy.com"
  *               phone:
  *                 type: string
- *                 example: "9876543210"
+ *                 description: Alternatively provide phone number directly
+ *                 example: "9999999999"
+ *               email:
+ *                 type: string
+ *                 description: Alternatively provide email address directly
+ *                 example: "admin@lemonacademy.com"
  *               password:
  *                 type: string
- *                 example: SecurePass123!
+ *                 example: Admin@12345
  *     responses:
  *       200:
  *         description: Logged in successfully
  *       401:
- *         description: Invalid phone number or password
+ *         description: Invalid phone number/email or password
  */
 router.post("/login", login);
 
@@ -178,7 +185,7 @@ router.get("/google/callback", googleCallback);
  * @swagger
  * /api/v1/auth/forgot-password:
  *   post:
- *     summary: Generate a password reset token by phone number
+ *     summary: Generate a password reset token by phone number or email
  *     tags:
  *       - Authentication
  *     requestBody:
@@ -187,17 +194,24 @@ router.get("/google/callback", googleCallback);
  *         application/json:
  *           schema:
  *             type: object
- *             required:
- *               - phone
  *             properties:
  *               phone:
  *                 type: string
+ *                 description: Phone number of the registered user
  *                 example: "9876543210"
+ *               email:
+ *                 type: string
+ *                 description: Email of the registered user
+ *                 example: "student@example.com"
+ *               identifier:
+ *                 type: string
+ *                 description: Phone or email
+ *                 example: "admin@lemonacademy.com"
  *     responses:
  *       200:
  *         description: Password reset token generated successfully
  *       400:
- *         description: Phone number is required
+ *         description: Phone number or email is required
  *       404:
  *         description: User not found
  *       500:

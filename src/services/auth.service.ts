@@ -9,9 +9,9 @@ import { prisma } from "../config/database";
 
 interface RegisterData {
     name?: string;
-    phone: string;
-    password: string;
+    phone?: string;
     email?: string;
+    password: string;
 }
 
 interface RefreshTokenPayload extends jwt.JwtPayload {
@@ -36,26 +36,33 @@ export const registerUser = async (data: RegisterData) => {
         email,
     } = data;
 
-    if (!phone || typeof phone !== "string" || !phone.trim()) {
-        throw new Error("Phone number is required");
+    if (!phone && !email) {
+        throw new Error("Phone number or email is required");
     }
 
-    const trimmedPhone = phone.trim();
+    if (!password || password.length < 6) {
+        throw new Error("Password must be at least 6 characters long");
+    }
+
+    const trimmedPhone = phone && phone.trim() ? phone.trim() : null;
+    const trimmedEmail = email && email.trim() ? email.trim().toLowerCase() : null;
 
     const existingUser = await prisma.user.findFirst({
         where: {
             OR: [
-                { phone: trimmedPhone },
-                ...(email && email.trim() ? [{ email: email.trim().toLowerCase() }] : []),
+                ...(trimmedPhone ? [{ phone: trimmedPhone }] : []),
+                ...(trimmedEmail ? [{ email: trimmedEmail }] : []),
             ],
         },
     });
 
     if (existingUser) {
-        if (existingUser.phone === trimmedPhone) {
+        if (trimmedPhone && existingUser.phone === trimmedPhone) {
             throw new Error("Phone number already registered");
         }
-        throw new Error("Email already registered");
+        if (trimmedEmail && existingUser.email === trimmedEmail) {
+            throw new Error("Email already registered");
+        }
     }
 
     const hashedPassword = await bcrypt.hash(
@@ -70,7 +77,7 @@ export const registerUser = async (data: RegisterData) => {
         data: {
             name: name || "Student",
             phone: trimmedPhone,
-            ...(email && email.trim() && { email: email.trim().toLowerCase() }),
+            email: trimmedEmail,
             passwordHash: hashedPassword,
 
             studentProfile: {
@@ -96,23 +103,24 @@ export const registerUser = async (data: RegisterData) => {
 };
 
 /* =========================================================
-   LOGIN
+   LOGIN (PHONE OR EMAIL)
 ========================================================= */
 
 export const loginUser = async (
-    phone: string,
+    identifier: string,
     password: string
 ) => {
-    if (!phone || typeof phone !== "string" || !phone.trim()) {
-        throw new Error("Phone number is required");
+    if (!identifier || typeof identifier !== "string" || !identifier.trim()) {
+        throw new Error("Phone number or email is required");
     }
 
-    const trimmedPhone = phone.trim();
+    const trimmed = identifier.trim();
+    const isEmail = trimmed.includes("@");
 
     const user = await prisma.user.findFirst({
-        where: {
-            phone: trimmedPhone,
-        },
+        where: isEmail
+            ? { email: trimmed.toLowerCase() }
+            : { phone: trimmed },
         include: {
             studentProfile: true,
             trainerProfile: true,
@@ -129,7 +137,7 @@ export const loginUser = async (
     });
 
     if (!user) {
-        throw new Error("Invalid phone number or password");
+        throw new Error(isEmail ? "Invalid email or password" : "Invalid phone number or password");
     }
 
     if (!user.isActive) {
@@ -142,7 +150,7 @@ export const loginUser = async (
     );
 
     if (!isPasswordValid) {
-        throw new Error("Invalid phone number or password");
+        throw new Error(isEmail ? "Invalid email or password" : "Invalid phone number or password");
     }
 
     const accessToken = generateAccessToken(
@@ -444,20 +452,21 @@ export const logoutUser = async (
 };
 
 /* =========================================================
-   FORGOT PASSWORD
+   FORGOT PASSWORD (PHONE OR EMAIL)
 ========================================================= */
 
-export const forgotPassword = async (phone: string) => {
-    if (!phone || typeof phone !== "string" || !phone.trim()) {
-        throw new Error("Phone number is required");
+export const forgotPassword = async (identifier: string) => {
+    if (!identifier || typeof identifier !== "string" || !identifier.trim()) {
+        throw new Error("Phone number or email is required");
     }
 
-    const trimmedPhone = phone.trim();
+    const trimmed = identifier.trim();
+    const isEmail = trimmed.includes("@");
 
     const user = await prisma.user.findFirst({
-        where: {
-            phone: trimmedPhone,
-        },
+        where: isEmail
+            ? { email: trimmed.toLowerCase() }
+            : { phone: trimmed },
     });
 
     if (!user) {
@@ -486,7 +495,10 @@ export const forgotPassword = async (phone: string) => {
     });
 
     const frontendUrl = (process.env.FRONTEND_URL || "https://course-website-f.vercel.app").replace(/\/$/, "");
-    const resetUrl = `${frontendUrl}/reset-password?token=${resetToken}&phone=${encodeURIComponent(user.phone || "")}`;
+    const resetParam = user.phone
+        ? `phone=${encodeURIComponent(user.phone)}`
+        : `email=${encodeURIComponent(user.email || "")}`;
+    const resetUrl = `${frontendUrl}/reset-password?token=${resetToken}&${resetParam}`;
 
     return {
         message: "Password reset token generated successfully",

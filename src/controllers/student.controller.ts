@@ -58,11 +58,12 @@ export const getMyProfileController = async (
             });
         }
 
-        const { name, phone, avatarUrl, bio } = req.body;
+        const { name, phone, email, avatarUrl, bio } = req.body;
 
         const profile = await updateMyProfile(userId, {
             name,
             phone,
+            email,
             avatarUrl,
             bio,
         });
