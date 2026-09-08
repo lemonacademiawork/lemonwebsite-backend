@@ -1,2 +1,0 @@
-// Referral validator structure
-export {};

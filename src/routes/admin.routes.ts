@@ -12,8 +12,6 @@ import {
     updateEnrollmentStatusController,
     getAdminGallerySubmissionsController,
     moderateGallerySubmissionController,
-    getAdminCommissionsController,
-    updateCommissionStatusController,
     getAdminSystemSettingsController,
     upsertSystemSettingController,
 } from "../controllers/admin.controller";
@@ -364,72 +362,7 @@ router.get("/gallery", getAdminGallerySubmissionsController);
  */
 router.patch("/gallery/:id/moderate", moderateGallerySubmissionController);
 
-/**
- * @swagger
- * /api/v1/admin/commissions:
- *   get:
- *     summary: List referral commissions for payout tracking
- *     tags: [Admin]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: query
- *         name: status
- *         schema:
- *           type: string
- *           enum: [PENDING, APPROVED, PAID, CANCELLED]
- *       - in: query
- *         name: page
- *         schema:
- *           type: integer
- *           default: 1
- *       - in: query
- *         name: limit
- *         schema:
- *           type: integer
- *           default: 20
- *     responses:
- *       200:
- *         description: Referral commissions fetched successfully
- */
-router.get("/commissions", getAdminCommissionsController);
 
-/**
- * @swagger
- * /api/v1/admin/commissions/{id}:
- *   patch:
- *     summary: Update referral commission status and transaction reference
- *     tags: [Admin]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *         description: Commission ID
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - status
- *             properties:
- *               status:
- *                 type: string
- *                 enum: [PENDING, APPROVED, PAID, CANCELLED]
- *                 example: PAID
- *               transactionReference:
- *                 type: string
- *                 example: "TXN_UPI_9876543210"
- *     responses:
- *       200:
- *         description: Commission status updated successfully
- */
-router.patch("/commissions/:id", updateCommissionStatusController);
 
 /**
  * @swagger

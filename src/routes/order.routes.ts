@@ -39,7 +39,7 @@ const router = Router();
  *                 type: string
  *                 nullable: true
  *                 example: "order_RZP123456"
- *               appliedReferralCode:
+ *               appliedCouponCode:
  *                 type: string
  *                 nullable: true
  *                 example: "LEMON10"
@@ -146,7 +146,7 @@ router.get(
  *                   - REFUNDED
  *               razorpayOrderId:
  *                 type: string
- *               appliedReferralCode:
+ *               appliedCouponCode:
  *                 type: string
  *     responses:
  *       200:

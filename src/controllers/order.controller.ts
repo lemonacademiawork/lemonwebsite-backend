@@ -27,7 +27,7 @@ export const createOrderController = async (
             amount,
             currency,
             razorpayOrderId,
-            appliedReferralCode,
+            appliedCouponCode,
         } = req.body;
 
         if (!courseId) {
@@ -66,7 +66,7 @@ export const createOrderController = async (
                 amount: Number(amount),
                 currency,
                 razorpayOrderId,
-                appliedReferralCode,
+                appliedCouponCode,
             }
         );
 
@@ -229,7 +229,7 @@ export const updateOrderController = async (
         const {
             status,
             razorpayOrderId,
-            appliedReferralCode,
+            appliedCouponCode,
         } = req.body;
 
         const validStatuses = [
@@ -256,7 +256,7 @@ export const updateOrderController = async (
             {
                 status,
                 razorpayOrderId,
-                appliedReferralCode,
+                appliedCouponCode,
             }
         );
 

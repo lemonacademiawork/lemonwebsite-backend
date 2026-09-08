@@ -40,11 +40,10 @@ Roles supported: `STUDENT`, `TRAINER`, `ADMIN`.
 15. [File Uploads (`/upload`)](#15-file-uploads-apiupload)
 16. [Blogs & Categories (`/blogs`, `/blog-categories`)](#16-blogs--categories-apiblogs-apiblog-categories)
 17. [Certificates (`/certificates`)](#17-certificates-apicertificates)
-18. [Referrals (`/referrals`)](#18-referrals-apireferrals)
-19. [Student & Trainer Dashboards (`/students`, `/trainers`)](#19-student--trainer-dashboards-apistudents-apitrainers)
-20. [Admin (`/admin`)](#20-admin-apiadmin)
-21. [Coupons (`/coupons`)](#21-coupons-apicoupons)
-22. [Trainer Applications (`/trainer-requests`)](#22-trainer-applications-apitrainer-requests)
+18. [Student & Trainer Dashboards (`/students`, `/trainers`)](#18-student--trainer-dashboards-apistudents-apitrainers)
+19. [Admin (`/admin`)](#19-admin-apiadmin)
+20. [Coupons (`/coupons`)](#20-coupons-apicoupons)
+21. [Trainer Applications (`/trainer-requests`)](#21-trainer-applications-apitrainer-requests)
 
 ---
 
@@ -855,14 +854,7 @@ Direct Cloudinary storage endpoints. Form-data with field name `file`.
 
 ---
 
-## 18. Referrals (`/api/v1/referrals`)
-
-- `GET /api/v1/referrals/my-code` — Get authenticated user's unique referral code & share link
-- `GET /api/v1/referrals/stats` — View total successful referrals & commission earnings
-
----
-
-## 19. Student & Trainer Dashboards (`/api/v1/students`, `/api/v1/trainers`)
+## 18. Student & Trainer Dashboards (`/api/v1/students`, `/api/v1/trainers`)
 
 - `GET /api/v1/students/dashboard` — Student summary statistics (Enrolled courses, completed lessons, certificates)
 - `GET /api/v1/students/certificates` — List student earned certificates

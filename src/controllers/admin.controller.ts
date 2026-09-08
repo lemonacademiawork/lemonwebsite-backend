@@ -10,8 +10,6 @@ import {
     updateEnrollmentStatus,
     getAdminGallerySubmissions,
     moderateGallerySubmission,
-    getAdminCommissions,
-    updateCommissionStatus,
     getAdminSystemSettings,
     upsertSystemSetting,
 } from "../services/admin.service";
@@ -19,7 +17,6 @@ import {
     UserRole,
     EnrollmentStatus,
     GalleryStatus,
-    CommissionStatus,
 } from "@prisma/client";
 
 export const getAdminDashboardController = async (
@@ -301,64 +298,7 @@ export const moderateGallerySubmissionController = async (
     }
 };
 
-export const getAdminCommissionsController = async (
-    req: Request,
-    res: Response
-) => {
-    try {
-        const { status, page, limit } = req.query;
 
-        const data = await getAdminCommissions({
-            status: status as CommissionStatus,
-            page: page ? Number(page) : undefined,
-            limit: limit ? Number(limit) : undefined,
-        });
-
-        return res.status(200).json({
-            success: true,
-            message: "Referral commissions fetched successfully",
-            data,
-        });
-    } catch (error: any) {
-        return res.status(500).json({
-            success: false,
-            message: error.message || "Failed to fetch referral commissions",
-        });
-    }
-};
-
-export const updateCommissionStatusController = async (
-    req: Request,
-    res: Response
-) => {
-    try {
-        const { id } = req.params;
-        const { status, transactionReference } = req.body;
-
-        if (!status || !Object.values(CommissionStatus).includes(status)) {
-            return res.status(400).json({
-                success: false,
-                message: `Valid status is required (${Object.values(CommissionStatus).join(", ")})`,
-            });
-        }
-
-        const updated = await updateCommissionStatus(id, {
-            status,
-            transactionReference,
-        });
-
-        return res.status(200).json({
-            success: true,
-            message: "Commission status updated successfully",
-            data: updated,
-        });
-    } catch (error: any) {
-        return res.status(400).json({
-            success: false,
-            message: error.message || "Failed to update commission status",
-        });
-    }
-};
 
 export const getAdminSystemSettingsController = async (
     req: Request,

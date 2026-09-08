@@ -4,7 +4,6 @@ import {
     OrderStatus,
     PaymentStatus,
     EnrollmentStatus,
-    CommissionStatus,
 } from "@prisma/client";
 import { razorpayInstance } from "../config/razorpay";
 import crypto from "crypto";
@@ -151,7 +150,6 @@ export const getPaymentById = async (
 interface CreateRazorpayOrderInput {
     courseId?: string;
     orderId?: string;
-    appliedReferralCode?: string;
     appliedCouponCode?: string;
     couponCode?: string;
 }
@@ -220,23 +218,7 @@ export const createRazorpayOrder = async (
         throw new Error("You are already registered for this course");
     }
 
-    // 4. Validate referral code if provided
-    const referralCode = data.appliedReferralCode || existingOrder?.appliedReferralCode;
-    if (referralCode) {
-        const referrerProfile = await prisma.studentProfile.findUnique({
-            where: { referralCode: referralCode.trim() },
-        });
-
-        if (!referrerProfile) {
-            throw new Error("Invalid referral code");
-        }
-
-        if (referrerProfile.userId === studentId) {
-            throw new Error("You cannot apply your own referral code");
-        }
-    }
-
-    // 5. Calculate base price from DB
+    // 4. Calculate base price from DB
     const basePrice = course.discountedPrice
         ? Number(course.discountedPrice)
         : Number(course.price);
@@ -244,7 +226,7 @@ export const createRazorpayOrder = async (
     let finalPrice = basePrice;
     let validCouponCode = data.appliedCouponCode || data.couponCode || existingOrder?.appliedCouponCode || undefined;
 
-    // 6. Validate & apply coupon discount if provided
+    // 5. Validate & apply coupon discount if provided
     if (validCouponCode) {
         try {
             const couponResult = await validateCoupon({
@@ -262,12 +244,12 @@ export const createRazorpayOrder = async (
 
     const amountInPaise = Math.round(finalPrice * 100);
 
-    // 7. Generate or use existing orderNumber
+    // 6. Generate or use existing orderNumber
     const orderNumber =
         existingOrder?.orderNumber ||
         `ORD-${Date.now()}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
 
-    // 8. Create Razorpay order
+    // 7. Create Razorpay order
     let razorpayOrder;
     try {
         razorpayOrder = await razorpayInstance.orders.create({
@@ -279,7 +261,6 @@ export const createRazorpayOrder = async (
                 courseTitle: course.title.substring(0, 50),
                 studentId,
                 orderNumber,
-                appliedReferralCode: referralCode || "",
                 appliedCouponCode: validCouponCode || "",
             },
         });
@@ -292,7 +273,7 @@ export const createRazorpayOrder = async (
         );
     }
 
-    // 9. Create or update internal Order record
+    // 8. Create or update internal Order record
     let dbOrder;
     if (existingOrder) {
         dbOrder = await prisma.order.update({
@@ -300,7 +281,6 @@ export const createRazorpayOrder = async (
             data: {
                 razorpayOrderId: razorpayOrder.id,
                 amount: finalPrice,
-                appliedReferralCode: referralCode,
                 appliedCouponCode: validCouponCode,
                 status: OrderStatus.PENDING,
             },
@@ -315,7 +295,6 @@ export const createRazorpayOrder = async (
                 currency: "INR",
                 status: OrderStatus.PENDING,
                 razorpayOrderId: razorpayOrder.id,
-                appliedReferralCode: referralCode,
                 appliedCouponCode: validCouponCode,
             },
         });
@@ -504,63 +483,6 @@ export const processRazorpayWebhook = async (
                         where: { id: existingEnrollment.id },
                         data: { status: EnrollmentStatus.ACTIVE },
                     });
-                }
-
-                if (order.appliedReferralCode) {
-                    const existingCommission =
-                        await tx.referralCommission.findUnique({
-                            where: { orderId: order.id },
-                        });
-
-                    if (!existingCommission) {
-                        const referrerProfile =
-                            await tx.studentProfile.findUnique({
-                                where: {
-                                    referralCode: order.appliedReferralCode,
-                                },
-                            });
-
-                        if (
-                            referrerProfile &&
-                            referrerProfile.userId !== order.studentId
-                        ) {
-                            let referral = await tx.referral.findFirst({
-                                where: {
-                                    referrerStudentId:
-                                        referrerProfile.userId,
-                                    referredStudentId: order.studentId,
-                                },
-                            });
-
-                            if (!referral) {
-                                referral = await tx.referral.create({
-                                    data: {
-                                        referrerStudentId:
-                                            referrerProfile.userId,
-                                        referredStudentId: order.studentId,
-                                        referralCodeUsed:
-                                            order.appliedReferralCode,
-                                    },
-                                });
-                            }
-
-                            const commissionPercentage = 20.0;
-                            const commissionAmount =
-                                Number(order.amount) * 0.2;
-
-                            await tx.referralCommission.create({
-                                data: {
-                                    referralId: referral.id,
-                                    orderId: order.id,
-                                    referrerStudentId:
-                                        referrerProfile.userId,
-                                    commissionPercentage,
-                                    commissionAmount,
-                                    status: CommissionStatus.PENDING,
-                                },
-                            });
-                        }
-                    }
                 }
             });
 

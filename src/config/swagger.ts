@@ -159,10 +159,6 @@ const options: swaggerJsdoc.Options = {
         name: "Gallery",
         description: "Student work showcase, project submissions, and admin moderation APIs",
       },
-      {
-        name: "Referrals",
-        description: "Student referral system and commission tracking APIs",
-      },
     ],
   },
   apis: [

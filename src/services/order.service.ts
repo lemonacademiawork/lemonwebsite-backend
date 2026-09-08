@@ -7,7 +7,6 @@ interface CreateOrderData {
     amount: number;
     currency?: string;
     razorpayOrderId?: string;
-    appliedReferralCode?: string;
     appliedCouponCode?: string;
 }
 
@@ -61,7 +60,6 @@ export const createOrder = async (
             currency: data.currency ?? "INR",
             status: OrderStatus.PENDING,
             razorpayOrderId: data.razorpayOrderId,
-            appliedReferralCode: data.appliedReferralCode,
             appliedCouponCode: data.appliedCouponCode,
         }
     });
@@ -144,7 +142,6 @@ export const updateOrder = async (
     data: {
         status?: "PENDING" | "PAID" | "FAILED" | "CANCELLED" | "REFUNDED";
         razorpayOrderId?: string;
-        appliedReferralCode?: string;
         appliedCouponCode?: string;
     }
 ) => {
@@ -169,9 +166,6 @@ export const updateOrder = async (
             }),
             ...(data.razorpayOrderId !== undefined && {
                 razorpayOrderId: data.razorpayOrderId,
-            }),
-            ...(data.appliedReferralCode !== undefined && {
-                appliedReferralCode: data.appliedReferralCode,
             }),
             ...(data.appliedCouponCode !== undefined && {
                 appliedCouponCode: data.appliedCouponCode,

@@ -4,7 +4,6 @@ import {
     EnrollmentStatus,
     EnrollmentSource,
     GalleryStatus,
-    CommissionStatus,
     PaymentStatus,
 } from "@prisma/client";
 
@@ -18,7 +17,6 @@ export const getAdminDashboard = async () => {
         totalEnrollments,
         activeEnrollments,
         pendingGalleryCount,
-        pendingCommissionCount,
         revenueData,
         recentOrders,
         recentEnrollments,
@@ -32,7 +30,6 @@ export const getAdminDashboard = async () => {
         prisma.enrollment.count(),
         prisma.enrollment.count({ where: { status: EnrollmentStatus.ACTIVE } }),
         prisma.gallerySubmission.count({ where: { status: GalleryStatus.PENDING } }),
-        prisma.referralCommission.count({ where: { status: CommissionStatus.PENDING } }),
         prisma.payment.aggregate({
             where: { status: PaymentStatus.CAPTURED },
             _sum: { amount: true },
@@ -79,7 +76,6 @@ export const getAdminDashboard = async () => {
             totalEnrollments,
             activeEnrollments,
             pendingGallerySubmissions: pendingGalleryCount,
-            pendingCommissions: pendingCommissionCount,
             totalRevenue: revenueData._sum.amount ? Number(revenueData._sum.amount) : 0,
             totalCapturedPayments: revenueData._count,
         },
@@ -218,13 +214,11 @@ export const updateUserRole = async (userId: string, role: UserRole) => {
 
     // If changing to STUDENT and profile doesn't exist, create it
     if (role === UserRole.STUDENT && !user.studentProfile) {
-        const referralCode = `REF-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
         await prisma.studentProfile.create({
             data: {
                 userId,
                 name: user.name || "Student",
                 phone: user.phone,
-                referralCode,
             },
         });
     }
@@ -518,97 +512,7 @@ export const moderateGallerySubmission = async (
     return updated;
 };
 
-export const getAdminCommissions = async (query: {
-    status?: CommissionStatus;
-    page?: number;
-    limit?: number;
-}) => {
-    const page = Math.max(1, Number(query.page) || 1);
-    const limit = Math.max(1, Math.min(100, Number(query.limit) || 20));
-    const skip = (page - 1) * limit;
 
-    const where: any = {};
-    if (query.status) where.status = query.status;
-
-    const [total, commissions] = await Promise.all([
-        prisma.referralCommission.count({ where }),
-        prisma.referralCommission.findMany({
-            where,
-            skip,
-            take: limit,
-            orderBy: { createdAt: "desc" },
-            include: {
-                referrer: {
-                    select: {
-                        id: true,
-                        name: true,
-                        phone: true,
-                        email: true,
-                        studentProfile: { select: { referralCode: true, phone: true } },
-                    },
-                },
-                order: {
-                    select: {
-                        id: true,
-                        orderNumber: true,
-                        amount: true,
-                        status: true,
-                    },
-                },
-                referral: {
-                    select: {
-                        id: true,
-                        referralCodeUsed: true,
-                        referred: {
-                            select: { id: true, name: true, phone: true, email: true },
-                        },
-                    },
-                },
-            },
-        }),
-    ]);
-
-    return {
-        commissions,
-        pagination: {
-            total,
-            page,
-            limit,
-            totalPages: Math.ceil(total / limit),
-        },
-    };
-};
-
-export const updateCommissionStatus = async (
-    commissionId: string,
-    data: {
-        status: CommissionStatus;
-        transactionReference?: string;
-    }
-) => {
-    const commission = await prisma.referralCommission.findUnique({
-        where: { id: commissionId },
-    });
-
-    if (!commission) {
-        throw new Error("Referral commission not found");
-    }
-
-    const updated = await prisma.referralCommission.update({
-        where: { id: commissionId },
-        data: {
-            status: data.status,
-            transactionReference: data.transactionReference,
-            payoutDate: data.status === CommissionStatus.PAID ? new Date() : undefined,
-        },
-        include: {
-            referrer: { select: { id: true, name: true, phone: true, email: true } },
-            order: { select: { orderNumber: true, amount: true } },
-        },
-    });
-
-    return updated;
-};
 
 export const getAdminSystemSettings = async () => {
     const settings = await prisma.systemSetting.findMany({

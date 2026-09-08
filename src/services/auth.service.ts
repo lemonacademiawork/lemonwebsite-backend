@@ -72,9 +72,6 @@ export const registerUser = async (data: RegisterData) => {
         10
     );
 
-    const referralCode =
-        `LEMON-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
-
     // Check if there is an approved trainer request matching this phone or email
     const approvedRequest = await prisma.trainerRequest.findFirst({
         where: {
@@ -101,7 +98,6 @@ export const registerUser = async (data: RegisterData) => {
                 create: {
                     name: name || "Student",
                     phone: trimmedPhone,
-                    referralCode,
                 },
             },
 
@@ -414,9 +410,6 @@ export const loginWithGoogle = async (
      * 4. New Google user
      */
     if (!user) {
-        const referralCode =
-            `LEMON-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
-
         const randomPasswordHash =
             await bcrypt.hash(
                 crypto.randomUUID(),
@@ -432,7 +425,6 @@ export const loginWithGoogle = async (
                 studentProfile: {
                     create: {
                         name: name || "Student",
-                        referralCode,
                     },
                 },
             },

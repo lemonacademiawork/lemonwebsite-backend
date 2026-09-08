@@ -151,7 +151,7 @@ router.post(
  * /api/v1/payments/razorpay-order:
  *   post:
  *     summary: Create Razorpay order for course checkout
- *     description: Creates a new Razorpay order for purchasing a course or retrying an existing order. Automatically fetches and verifies pricing from the database, validates referral codes, creates/updates an internal Order record, and returns all checkout parameters required by Razorpay Frontend SDK.
+ *     description: Creates a new Razorpay order for purchasing a course or retrying an existing order. Automatically fetches and verifies pricing from the database, applies coupons, creates/updates an internal Order record, and returns all checkout parameters required by Razorpay Frontend SDK.
  *     tags: [Payments]
  *     security:
  *       - bearerAuth: []
@@ -173,10 +173,10 @@ router.post(
  *                 nullable: true
  *                 description: Optional existing order ID if retrying an unpaid order
  *                 example: "a1b2c3d4-e5f6-7890-abcd-123456789012"
- *               appliedReferralCode:
+ *               appliedCouponCode:
  *                 type: string
  *                 nullable: true
- *                 description: Optional student referral code to apply
+ *                 description: Optional coupon code to apply
  *                 example: "LEMON10"
  *     responses:
  *       201:
@@ -248,7 +248,7 @@ router.post(
  *               success: false
  *               message: "Authentication required"
  *       404:
- *         description: Course, Student, or Referral code not found
+ *         description: Course or Student not found
  *         content:
  *           application/json:
  *             schema:

@@ -66,7 +66,7 @@ export const createRazorpayOrderController = async (
             });
         }
 
-        const { courseId, orderId, appliedReferralCode, appliedCouponCode, couponCode, coupon } = req.body;
+        const { courseId, orderId, appliedCouponCode, couponCode, coupon } = req.body;
 
         if (!courseId && !orderId) {
             return res.status(400).json({
@@ -80,7 +80,6 @@ export const createRazorpayOrderController = async (
             {
                 courseId,
                 orderId,
-                appliedReferralCode,
                 appliedCouponCode: appliedCouponCode || couponCode || coupon,
             }
         );
@@ -99,8 +98,7 @@ export const createRazorpayOrderController = async (
         if (
             message === "Course not found" ||
             message === "Student not found" ||
-            message === "Order not found" ||
-            message === "Invalid referral code"
+            message === "Order not found"
         ) {
             return res.status(404).json({
                 success: false,
@@ -120,8 +118,7 @@ export const createRazorpayOrderController = async (
         }
 
         if (
-            message === "Course ID is required" ||
-            message === "You cannot apply your own referral code"
+            message === "Course ID is required"
         ) {
             return res.status(400).json({
                 success: false,
