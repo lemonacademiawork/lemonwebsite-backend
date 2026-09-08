@@ -11,6 +11,7 @@ import {
     forgotPasswordController,
     resetPasswordController,
     sendWhatsAppOtpController,
+    verifyWhatsAppOtpController,
 } from "../controllers/auth.controller";
 import { authenticate } from "../middleware/auth.middleware";
 const router = Router();
@@ -347,5 +348,37 @@ router.post(
  */
 router.post("/whatsapp/send-otp", sendWhatsAppOtpController);
 router.post("/whatsapp-otp", sendWhatsAppOtpController);
+
+/**
+ * @swagger
+ * /api/v1/auth/whatsapp/verify-otp:
+ *   post:
+ *     summary: Verify manually entered WhatsApp OTP code
+ *     tags:
+ *       - Authentication
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - phone
+ *               - otp
+ *             properties:
+ *               phone:
+ *                 type: string
+ *                 example: "9876543210"
+ *               otp:
+ *                 type: string
+ *                 example: "262626"
+ *     responses:
+ *       200:
+ *         description: OTP verified successfully
+ *       400:
+ *         description: Invalid or expired OTP
+ */
+router.post("/whatsapp/verify-otp", verifyWhatsAppOtpController);
+router.post("/verify-otp", verifyWhatsAppOtpController);
 
 export default router;

@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { registerUser, loginUser, refreshUser, logoutUser, resetPassword, forgotPassword, loginWithGoogle } from "../services/auth.service";
+import { registerUser, loginUser, refreshUser, logoutUser, resetPassword, forgotPassword, loginWithGoogle, verifyOtp } from "../services/auth.service";
 import { googleClient } from "../config/google";
 import { sendWhatsAppOTP } from "../services/whatsapp.service";
 
@@ -283,16 +283,17 @@ export const resetPasswordController = async (
     res: Response
 ) => {
     try {
-        const { token, newPassword, phone, email } = req.body;
+        const { token, otp, code, newPassword, phone, email } = req.body;
+        const resetToken = token || otp || code;
 
-        if (!token || !newPassword) {
+        if (!resetToken || !newPassword) {
             return res.status(400).json({
                 success: false,
-                message: "Token and newPassword are required",
+                message: "OTP code/token and newPassword are required",
             });
         }
 
-        const result = await resetPassword({ token, newPassword, phone, email });
+        const result = await resetPassword({ token: resetToken, newPassword, phone, email });
 
         return res.status(200).json({
             success: true,
@@ -348,28 +349,70 @@ export const sendWhatsAppOtpController = async (
             });
         }
 
-        const otpCode = code ? String(code) : Math.floor(100000 + Math.random() * 900000).toString();
-        const result = await sendWhatsAppOTP(targetPhone, otpCode, templateId);
+        const cleanPhone = String(targetPhone).trim();
+        const otpCode = code ? String(code).trim() : Math.floor(100000 + Math.random() * 900000).toString();
 
-        if (!result.success) {
-            return res.status(502).json({
-                success: false,
-                message: result.error || "Failed to send WhatsApp message via ZoePact",
-            });
+        // If user exists, hash and save OTP to user account
+        const user = await forgotPassword(cleanPhone).catch(() => null);
+
+        // If user wasn't processed by forgotPassword, send direct template
+        if (!user) {
+            const result = await sendWhatsAppOTP(cleanPhone, otpCode, templateId);
+            if (!result.success) {
+                return res.status(502).json({
+                    success: false,
+                    message: result.error || "Failed to send WhatsApp OTP via ZoePact",
+                });
+            }
         }
 
         return res.status(200).json({
             success: true,
-            message: "WhatsApp OTP sent successfully",
+            message: "OTP sent to your WhatsApp. Please check your WhatsApp and enter the 6-digit code.",
             data: {
-                phone: targetPhone,
-                code: otpCode,
-                result: result.data,
+                phone: cleanPhone,
+                sent: true,
             },
         });
     } catch (error) {
         const message = error instanceof Error ? error.message : "Failed to send WhatsApp OTP";
         return res.status(500).json({
+            success: false,
+            message,
+        });
+    }
+};
+
+export const verifyWhatsAppOtpController = async (
+    req: Request,
+    res: Response
+) => {
+    try {
+        const { phone, phoneNumber, email, otp, code, token } = req.body;
+        const targetPhone = phone || phoneNumber;
+        const targetOtp = otp || code || token;
+
+        if (!targetOtp) {
+            return res.status(400).json({
+                success: false,
+                message: "OTP code is required",
+            });
+        }
+
+        const result = await verifyOtp({
+            phone: targetPhone,
+            email,
+            otp: String(targetOtp),
+        });
+
+        return res.status(200).json({
+            success: true,
+            message: result.message,
+            data: result,
+        });
+    } catch (error) {
+        const message = error instanceof Error ? error.message : "Failed to verify OTP";
+        return res.status(400).json({
             success: false,
             message,
         });

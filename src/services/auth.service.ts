@@ -648,11 +648,74 @@ export const forgotPassword = async (identifier: string) => {
     const resetUrl = `${frontendUrl}/reset-password?token=${otpCode}&${resetParam}`;
 
     return {
-        message: "Password reset OTP sent successfully",
-        otpCode,
-        resetToken: otpCode,
-        resetUrl,
+        message: "OTP has been sent to your WhatsApp. Please check your WhatsApp and enter the 6-digit code to verify.",
+        phone: user.phone,
+        email: user.email,
         whatsappSent: whatsappResult?.success ?? false,
+    };
+};
+
+/* =========================================================
+   VERIFY OTP (MANUALLY ENTERED BY USER)
+========================================================= */
+
+export const verifyOtp = async (data: { phone?: string; email?: string; otp: string }) => {
+    const { phone, email, otp } = data;
+
+    if (!otp || typeof otp !== "string" || !otp.trim()) {
+        throw new Error("OTP code is required");
+    }
+
+    const trimmedOtp = otp.trim();
+    let matchedUser = null;
+
+    if (phone && typeof phone === "string" && phone.trim()) {
+        const user = await prisma.user.findFirst({
+            where: { phone: phone.trim() },
+        });
+
+        if (!user || !user.resetPasswordToken || !user.resetPasswordExpiresAt) {
+            throw new Error("Invalid or expired OTP code");
+        }
+
+        if (user.resetPasswordExpiresAt < new Date()) {
+            throw new Error("OTP code has expired. Please request a new OTP.");
+        }
+
+        const isTokenValid = await bcrypt.compare(trimmedOtp, user.resetPasswordToken);
+        if (!isTokenValid) {
+            throw new Error("Invalid OTP code. Please enter the correct code received on WhatsApp.");
+        }
+
+        matchedUser = user;
+    } else if (email && typeof email === "string" && email.trim()) {
+        const user = await prisma.user.findFirst({
+            where: { email: email.trim().toLowerCase() },
+        });
+
+        if (!user || !user.resetPasswordToken || !user.resetPasswordExpiresAt) {
+            throw new Error("Invalid or expired OTP code");
+        }
+
+        if (user.resetPasswordExpiresAt < new Date()) {
+            throw new Error("OTP code has expired. Please request a new OTP.");
+        }
+
+        const isTokenValid = await bcrypt.compare(trimmedOtp, user.resetPasswordToken);
+        if (!isTokenValid) {
+            throw new Error("Invalid OTP code. Please enter the correct code.");
+        }
+
+        matchedUser = user;
+    } else {
+        throw new Error("Phone number or email is required for verification");
+    }
+
+    return {
+        verified: true,
+        message: "OTP verified successfully",
+        phone: matchedUser.phone,
+        email: matchedUser.email,
     };
 };
 

@@ -244,11 +244,36 @@ Users can log in with **Phone Number**, **Email Address**, or a generic **`ident
 - **Path**: `/api/v1/auth/reset-password`
 - **Auth**: Public
 
+#### Request Body (Works with manual OTP entered by user)
+```json
+{
+  "phone": "9876543210",
+  "otp": "262626",
+  "newPassword": "NewSecurePassword123!"
+}
+```
+*Note: Also accepts `"code"` or `"token"` interchangeably for the OTP field.*
+
+#### Response (`200 OK`)
+```json
+{
+  "success": true,
+  "message": "Password reset successful. You can now log in with your new password."
+}
+```
+
+---
+
+### 1.8 Send WhatsApp OTP (ZoePact)
+- **Method**: `POST`
+- **Path**: `/api/v1/auth/whatsapp/send-otp`
+- **Auth**: Public
+
+Sends a 6-digit OTP code directly to the student's WhatsApp number using ZoePact template `401355`. The plain OTP code is kept safe on the server (hashed) and **never** leaked in the response.
+
 #### Request Body
 ```json
 {
-  "token": "4e7a8f9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f",
-  "newPassword": "NewSecurePassword123!",
   "phone": "9876543210"
 }
 ```
@@ -257,7 +282,48 @@ Users can log in with **Phone Number**, **Email Address**, or a generic **`ident
 ```json
 {
   "success": true,
-  "message": "Password reset successful. You can now log in with your new password."
+  "message": "OTP sent to WhatsApp successfully.",
+  "data": {
+    "phone": "9876543210",
+    "status": "SENT"
+  }
+}
+```
+
+---
+
+### 1.9 Verify WhatsApp / Forgot Password OTP (Manual Verification)
+- **Method**: `POST`
+- **Path**: `/api/v1/auth/whatsapp/verify-otp` (or `/api/v1/auth/verify-otp`)
+- **Auth**: Public
+
+Use this endpoint when the student types the 6 digits received on WhatsApp into the frontend input box.
+
+#### Request Body
+```json
+{
+  "phone": "9876543210",
+  "otp": "262626"
+}
+```
+
+#### Success Response (`200 OK`)
+```json
+{
+  "success": true,
+  "message": "OTP verified successfully.",
+  "data": {
+    "verified": true,
+    "phone": "9876543210"
+  }
+}
+```
+
+#### Failure Response (`400 Bad Request`)
+```json
+{
+  "success": false,
+  "message": "Invalid or expired OTP. Please check the code received on WhatsApp."
 }
 ```
 
