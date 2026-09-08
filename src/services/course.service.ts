@@ -219,120 +219,118 @@ export const deleteCourse = async (
         throw new Error("You are not allowed to delete this course");
     }
 
-    await prisma.$transaction(async (tx) => {
-        // 1. Delete payments associated with orders for this course
-        await tx.payment.deleteMany({
-            where: {
-                order: {
-                    courseId,
-                },
-            },
-        });
-
-        // 2. Delete coupon usages associated with orders for this course
-        await tx.couponUsage.deleteMany({
-            where: {
-                order: {
-                    courseId,
-                },
-            },
-        });
-
-        // 3. Delete enrollments
-        await tx.enrollment.deleteMany({
-            where: {
+    // 1. Delete payments associated with orders for this course
+    await prisma.payment.deleteMany({
+        where: {
+            order: {
                 courseId,
             },
-        });
+        },
+    });
 
-        // 4. Delete orders
-        await tx.order.deleteMany({
-            where: {
+    // 2. Delete coupon usages associated with orders for this course
+    await prisma.couponUsage.deleteMany({
+        where: {
+            order: {
                 courseId,
             },
-        });
+        },
+    });
 
-        // 5. Delete certificates
-        await tx.certificate.deleteMany({
-            where: {
+    // 3. Delete enrollments
+    await prisma.enrollment.deleteMany({
+        where: {
+            courseId,
+        },
+    });
+
+    // 4. Delete orders
+    await prisma.order.deleteMany({
+        where: {
+            courseId,
+        },
+    });
+
+    // 5. Delete certificates
+    await prisma.certificate.deleteMany({
+        where: {
+            courseId,
+        },
+    });
+
+    // 6. Delete progress
+    await prisma.progress.deleteMany({
+        where: {
+            courseId,
+        },
+    });
+
+    // 7. Delete reviews
+    await prisma.review.deleteMany({
+        where: {
+            courseId,
+        },
+    });
+
+    // 8. Delete gallery submissions
+    await prisma.gallerySubmission.deleteMany({
+        where: {
+            courseId,
+        },
+    });
+
+    // 9. Delete business guidance
+    await prisma.businessGuidance.deleteMany({
+        where: {
+            courseId,
+        },
+    });
+
+    // 10. Delete resources
+    await prisma.resource.deleteMany({
+        where: {
+            courseId,
+        },
+    });
+
+    // 11. Delete procedures
+    await prisma.procedure.deleteMany({
+        where: {
+            courseId,
+        },
+    });
+
+    // 12. Delete lessons
+    await prisma.lesson.deleteMany({
+        where: {
+            module: {
                 courseId,
             },
-        });
+        },
+    });
 
-        // 6. Delete progress
-        await tx.progress.deleteMany({
-            where: {
-                courseId,
-            },
-        });
+    // 13. Delete course modules
+    await prisma.courseModule.deleteMany({
+        where: {
+            courseId,
+        },
+    });
 
-        // 7. Delete reviews
-        await tx.review.deleteMany({
-            where: {
-                courseId,
-            },
-        });
+    // 14. Decouple coupons
+    await prisma.coupon.updateMany({
+        where: {
+            courseId,
+        },
+        data: {
+            courseId: null,
+        },
+    });
 
-        // 8. Delete gallery submissions
-        await tx.gallerySubmission.deleteMany({
-            where: {
-                courseId,
-            },
-        });
-
-        // 9. Delete business guidance
-        await tx.businessGuidance.deleteMany({
-            where: {
-                courseId,
-            },
-        });
-
-        // 10. Delete resources
-        await tx.resource.deleteMany({
-            where: {
-                courseId,
-            },
-        });
-
-        // 11. Delete procedures
-        await tx.procedure.deleteMany({
-            where: {
-                courseId,
-            },
-        });
-
-        // 12. Delete lessons
-        await tx.lesson.deleteMany({
-            where: {
-                module: {
-                    courseId,
-                },
-            },
-        });
-
-        // 13. Delete course modules
-        await tx.courseModule.deleteMany({
-            where: {
-                courseId,
-            },
-        });
-
-        // 14. Decouple coupons
-        await tx.coupon.updateMany({
-            where: {
-                courseId,
-            },
-            data: {
-                courseId: null,
-            },
-        });
-
-        // 15. Finally delete the course
-        await tx.course.delete({
-            where: {
-                id: courseId,
-            },
-        });
+    // 15. Finally delete the course
+    await prisma.course.delete({
+        where: {
+            id: courseId,
+        },
     });
 
     return {

@@ -158,54 +158,52 @@ export const deleteCourseModule = async (
         throw new Error("Course module not found");
     }
 
-    await prisma.$transaction(async (tx) => {
-        // Delete business guidance associated with this module
-        await tx.businessGuidance.deleteMany({
-            where: {
+    // Delete business guidance associated with this module
+    await prisma.businessGuidance.deleteMany({
+        where: {
+            moduleId,
+        },
+    });
+
+    // Delete progress for lessons in this module
+    await prisma.progress.deleteMany({
+        where: {
+            lesson: {
                 moduleId,
             },
-        });
+        },
+    });
 
-        // Delete progress for lessons in this module
-        await tx.progress.deleteMany({
-            where: {
-                lesson: {
-                    moduleId,
-                },
-            },
-        });
-
-        // Delete resources for lessons in this module
-        await tx.resource.deleteMany({
-            where: {
-                lesson: {
-                    moduleId,
-                },
-            },
-        });
-
-        // Delete procedures for lessons in this module
-        await tx.procedure.deleteMany({
-            where: {
-                lesson: {
-                    moduleId,
-                },
-            },
-        });
-
-        // Delete lessons
-        await tx.lesson.deleteMany({
-            where: {
+    // Delete resources for lessons in this module
+    await prisma.resource.deleteMany({
+        where: {
+            lesson: {
                 moduleId,
             },
-        });
+        },
+    });
 
-        // Delete the module
-        await tx.courseModule.delete({
-            where: {
-                id: moduleId,
+    // Delete procedures for lessons in this module
+    await prisma.procedure.deleteMany({
+        where: {
+            lesson: {
+                moduleId,
             },
-        });
+        },
+    });
+
+    // Delete lessons
+    await prisma.lesson.deleteMany({
+        where: {
+            moduleId,
+        },
+    });
+
+    // Delete the module
+    await prisma.courseModule.delete({
+        where: {
+            id: moduleId,
+        },
     });
 
     return {
