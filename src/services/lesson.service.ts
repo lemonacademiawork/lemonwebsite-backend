@@ -220,10 +220,34 @@ export const deleteLesson = async (
         throw new Error("Lesson not found");
     }
 
-    await prisma.lesson.delete({
-        where: {
-            id: lessonId,
-        },
+    await prisma.$transaction(async (tx) => {
+        // Delete progress for this lesson
+        await tx.progress.deleteMany({
+            where: {
+                lessonId,
+            },
+        });
+
+        // Delete resources for this lesson
+        await tx.resource.deleteMany({
+            where: {
+                lessonId,
+            },
+        });
+
+        // Delete procedures for this lesson
+        await tx.procedure.deleteMany({
+            where: {
+                lessonId,
+            },
+        });
+
+        // Delete the lesson
+        await tx.lesson.delete({
+            where: {
+                id: lessonId,
+            },
+        });
     });
 
     return {

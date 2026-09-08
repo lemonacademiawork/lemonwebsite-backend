@@ -305,7 +305,7 @@ export const deleteCourseController = async (
 
         return res.status(500).json({
             success: false,
-            message: "Failed to delete course",
+            message: message || "Failed to delete course",
         });
     }
 };
