@@ -722,7 +722,7 @@ export const verifyOtp = async (data: { phone?: string; email?: string; otp: str
         throw new Error("OTP code is required");
     }
 
-    const cleanOtp = String(otp).trim();
+    const cleanOtp = String(otp).replace(/\s+/g, "").trim();
     const identifier = phone || email;
 
     // 1. Check User in database
@@ -832,7 +832,7 @@ export const resetPassword = async (data: ResetPasswordData) => {
         throw new Error("Reset OTP code is required");
     }
 
-    const cleanToken = String(token).trim();
+    const cleanToken = String(token).replace(/\s+/g, "").trim();
 
     if (!newPassword || typeof newPassword !== "string" || newPassword.length < 6) {
         throw new Error("Password must be at least 6 characters long");
