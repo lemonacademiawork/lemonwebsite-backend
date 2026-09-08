@@ -17,6 +17,8 @@ import enrollmentRoutes from "./routes/enrollment.routes";
 import reviewRoutes from "./routes/review.routes";
 import galleryRoutes from "./routes/gallery.routes";
 import uploadRoutes from "./routes/upload.routes";
+import couponRoutes from "./routes/coupon.routes";
+import trainerRequestRoutes from "./routes/trainerRequest.routes";
 // BigInt JSON serialization fix for Express / Prisma
 (BigInt.prototype as any).toJSON = function () {
   return this.toString();
@@ -77,5 +79,7 @@ app.use("/api/v1/courses", reviewRoutes);
 app.use("/api/v1/reviews", reviewRoutes);
 app.use("/api/v1/gallery", galleryRoutes);
 app.use("/api/v1/upload", uploadRoutes);
+app.use("/api/v1/coupons", couponRoutes);
+app.use("/api/v1/trainer-requests", trainerRequestRoutes);
 app.use("/api/v1", routes);
 export default app;

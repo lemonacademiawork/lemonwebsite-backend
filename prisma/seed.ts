@@ -12,12 +12,14 @@ async function main() {
   const trainerUser = await prisma.user.upsert({
     where: { email: "trainer@lemonacademy.com" },
     update: {
+      phone: "9876543210",
       passwordHash,
       role: UserRole.TRAINER,
       isActive: true,
     },
     create: {
       name: "Chef & Craft Specialist Elena",
+      phone: "9876543210",
       email: "trainer@lemonacademy.com",
       passwordHash,
       role: UserRole.TRAINER,
@@ -25,6 +27,7 @@ async function main() {
       trainerProfile: {
         create: {
           name: "Elena Rostova",
+          phone: "9876543210",
           expertise: "Master Baker & Craft Artisan",
           designation: "Head Instructor at Lemon Academy",
           bio: "Passionate artisan with over 12 years of experience in creative arts, gourmet baking, and handmade soap creation.",
@@ -37,12 +40,14 @@ async function main() {
   const adminUser = await prisma.user.upsert({
     where: { email: "admin@lemonacademy.com" },
     update: {
+      phone: "9999999999",
       passwordHash,
       role: UserRole.ADMIN,
       isActive: true,
     },
     create: {
       name: "Lemon Academy Admin",
+      phone: "9999999999",
       email: "admin@lemonacademy.com",
       passwordHash,
       role: UserRole.ADMIN,
@@ -50,8 +55,8 @@ async function main() {
     },
   });
 
-  console.log(`✅ Trainer user ready: ${trainerUser.email}`);
-  console.log(`✅ Admin user ready: ${adminUser.email}`);
+  console.log(`✅ Trainer user ready: phone: ${trainerUser.phone}, email: ${trainerUser.email}`);
+  console.log(`✅ Admin user ready: phone: ${adminUser.phone}, email: ${adminUser.email}`);
 
   // 2. Create Categories
   const categoriesData = [

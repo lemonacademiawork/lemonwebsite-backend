@@ -1,10 +1,18 @@
 import { Request, Response } from "express";
-import { registerUser, loginUser, refreshUser, logoutUser, resetPassword } from "../services/auth.service";
+import { registerUser, loginUser, refreshUser, logoutUser, resetPassword, forgotPassword, loginWithGoogle } from "../services/auth.service";
 import { googleClient } from "../config/google";
-import { loginWithGoogle } from "../services/auth.service";
-import { forgotPassword } from "../services/auth.service";
+
 export const register = async (req: Request, res: Response) => {
     try {
+        const { phone, password } = req.body;
+
+        if (!phone || !password) {
+            return res.status(400).json({
+                success: false,
+                message: "Phone number and password are required",
+            });
+        }
+
         const user = await registerUser(req.body);
 
         return res.status(201).json({
@@ -21,18 +29,19 @@ export const register = async (req: Request, res: Response) => {
         });
     }
 };
+
 export const login = async (req: Request, res: Response) => {
     try {
-        const { email, password } = req.body;
+        const { phone, password } = req.body;
 
-        if (!email || !password) {
+        if (!phone || !password) {
             return res.status(400).json({
                 success: false,
-                message: "Email and password are required",
+                message: "Phone number and password are required",
             });
         }
 
-        const result = await loginUser(email, password);
+        const result = await loginUser(phone, password);
 
         return res.status(200).json({
             success: true,
@@ -49,6 +58,7 @@ export const login = async (req: Request, res: Response) => {
         });
     }
 };
+
 export const getMe = async (req: Request, res: Response) => {
     return res.status(200).json({
         success: true,
@@ -58,6 +68,7 @@ export const getMe = async (req: Request, res: Response) => {
         },
     });
 };
+
 export const refresh = async (req: Request, res: Response) => {
     try {
         const { refreshToken } = req.body;
@@ -111,6 +122,7 @@ export const logout = async (req: Request, res: Response) => {
         });
     }
 };
+
 export const googleLogin = (req: Request, res: Response) => {
     const authorizationUrl = googleClient.generateAuthUrl({
         access_type: "offline",
@@ -124,6 +136,7 @@ export const googleLogin = (req: Request, res: Response) => {
 
     return res.redirect(authorizationUrl);
 };
+
 export const googleCallback = async (
     req: Request,
     res: Response
@@ -199,21 +212,22 @@ export const googleCallback = async (
         });
     }
 };
+
 export const forgotPasswordController = async (
     req: Request,
     res: Response
 ) => {
     try {
-        const { email } = req.body;
+        const { phone } = req.body;
 
-        if (!email) {
+        if (!phone) {
             return res.status(400).json({
                 success: false,
-                message: "Email is required",
+                message: "Phone number is required",
             });
         }
 
-        const result = await forgotPassword(email);
+        const result = await forgotPassword(phone);
 
         return res.status(200).json({
             success: true,
@@ -247,7 +261,7 @@ export const resetPasswordController = async (
     res: Response
 ) => {
     try {
-        const { token, newPassword, email } = req.body;
+        const { token, newPassword, phone, email } = req.body;
 
         if (!token || !newPassword) {
             return res.status(400).json({
@@ -256,7 +270,7 @@ export const resetPasswordController = async (
             });
         }
 
-        const result = await resetPassword({ token, newPassword, email });
+        const result = await resetPassword({ token, newPassword, phone, email });
 
         return res.status(200).json({
             success: true,

@@ -42,7 +42,7 @@ export const getAdminDashboard = async () => {
             take: 5,
             orderBy: { createdAt: "desc" },
             include: {
-                student: { select: { id: true, name: true, email: true } },
+                student: { select: { id: true, name: true, phone: true, email: true } },
                 course: { select: { id: true, title: true } },
             },
         }),
@@ -50,7 +50,7 @@ export const getAdminDashboard = async () => {
             take: 5,
             orderBy: { createdAt: "desc" },
             include: {
-                student: { select: { id: true, name: true, email: true } },
+                student: { select: { id: true, name: true, phone: true, email: true } },
                 course: { select: { id: true, title: true } },
             },
         }),
@@ -60,6 +60,7 @@ export const getAdminDashboard = async () => {
             select: {
                 id: true,
                 name: true,
+                phone: true,
                 email: true,
                 role: true,
                 isActive: true,
@@ -112,6 +113,7 @@ export const getAdminUsers = async (query: {
     if (query.search) {
         where.OR = [
             { name: { contains: query.search, mode: "insensitive" } },
+            { phone: { contains: query.search, mode: "insensitive" } },
             { email: { contains: query.search, mode: "insensitive" } },
         ];
     }
@@ -126,6 +128,7 @@ export const getAdminUsers = async (query: {
             select: {
                 id: true,
                 name: true,
+                phone: true,
                 email: true,
                 role: true,
                 isActive: true,
@@ -208,6 +211,7 @@ export const updateUserRole = async (userId: string, role: UserRole) => {
             data: {
                 user: { connect: { id: userId } },
                 name: user.name || "Trainer",
+                phone: user.phone,
             },
         });
     }
@@ -219,6 +223,7 @@ export const updateUserRole = async (userId: string, role: UserRole) => {
             data: {
                 userId,
                 name: user.name || "Student",
+                phone: user.phone,
                 referralCode,
             },
         });
@@ -230,6 +235,7 @@ export const updateUserRole = async (userId: string, role: UserRole) => {
         select: {
             id: true,
             name: true,
+            phone: true,
             email: true,
             role: true,
             isActive: true,
@@ -255,6 +261,7 @@ export const updateUserStatus = async (userId: string, isActive: boolean) => {
         select: {
             id: true,
             name: true,
+            phone: true,
             email: true,
             role: true,
             isActive: true,
@@ -294,6 +301,7 @@ export const getAdminEnrollments = async (query: {
                     select: {
                         id: true,
                         name: true,
+                        phone: true,
                         email: true,
                         studentProfile: { select: { phone: true, avatarUrl: true } },
                     },
@@ -380,7 +388,7 @@ export const createManualEnrollment = async (data: {
             status: EnrollmentStatus.ACTIVE,
         },
         include: {
-            student: { select: { id: true, name: true, email: true } },
+            student: { select: { id: true, name: true, phone: true, email: true } },
             course: { select: { id: true, title: true } },
         },
     });
@@ -404,7 +412,7 @@ export const updateEnrollmentStatus = async (
         where: { id: enrollmentId },
         data: { status },
         include: {
-            student: { select: { id: true, name: true, email: true } },
+            student: { select: { id: true, name: true, phone: true, email: true } },
             course: { select: { id: true, title: true } },
         },
     });
@@ -440,6 +448,7 @@ export const getAdminGallerySubmissions = async (query: {
                     select: {
                         id: true,
                         name: true,
+                        phone: true,
                         email: true,
                         studentProfile: { select: { avatarUrl: true } },
                     },
@@ -455,6 +464,7 @@ export const getAdminGallerySubmissions = async (query: {
                     select: {
                         id: true,
                         name: true,
+                        phone: true,
                     },
                 },
             },
@@ -499,9 +509,9 @@ export const moderateGallerySubmission = async (
             moderatedAt: new Date(),
         },
         include: {
-            student: { select: { id: true, name: true, email: true } },
+            student: { select: { id: true, name: true, phone: true, email: true } },
             course: { select: { id: true, title: true } },
-            moderator: { select: { id: true, name: true } },
+            moderator: { select: { id: true, name: true, phone: true } },
         },
     });
 
@@ -532,6 +542,7 @@ export const getAdminCommissions = async (query: {
                     select: {
                         id: true,
                         name: true,
+                        phone: true,
                         email: true,
                         studentProfile: { select: { referralCode: true, phone: true } },
                     },
@@ -549,7 +560,7 @@ export const getAdminCommissions = async (query: {
                         id: true,
                         referralCodeUsed: true,
                         referred: {
-                            select: { id: true, name: true, email: true },
+                            select: { id: true, name: true, phone: true, email: true },
                         },
                     },
                 },
@@ -591,7 +602,7 @@ export const updateCommissionStatus = async (
             payoutDate: data.status === CommissionStatus.PAID ? new Date() : undefined,
         },
         include: {
-            referrer: { select: { id: true, name: true, email: true } },
+            referrer: { select: { id: true, name: true, phone: true, email: true } },
             order: { select: { orderNumber: true, amount: true } },
         },
     });

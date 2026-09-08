@@ -28,13 +28,15 @@ const router = Router();
  *           schema:
  *             type: object
  *             required:
- *               - name
- *               - email
+ *               - phone
  *               - password
  *             properties:
  *               name:
  *                 type: string
  *                 example: Sejal Agarwal
+ *               phone:
+ *                 type: string
+ *                 example: "9876543210"
  *               email:
  *                 type: string
  *                 example: sejal@example.com
@@ -45,7 +47,7 @@ const router = Router();
  *       201:
  *         description: User registered successfully
  *       400:
- *         description: Invalid input or email already registered
+ *         description: Invalid input or phone number already registered
  */
 router.post("/register", register);
 
@@ -53,7 +55,7 @@ router.post("/register", register);
  * @swagger
  * /api/v1/auth/login:
  *   post:
- *     summary: Log in with email and password
+ *     summary: Log in with phone number and password
  *     tags:
  *       - Authentication
  *     requestBody:
@@ -63,12 +65,12 @@ router.post("/register", register);
  *           schema:
  *             type: object
  *             required:
- *               - email
+ *               - phone
  *               - password
  *             properties:
- *               email:
+ *               phone:
  *                 type: string
- *                 example: sejal@example.com
+ *                 example: "9876543210"
  *               password:
  *                 type: string
  *                 example: SecurePass123!
@@ -76,7 +78,7 @@ router.post("/register", register);
  *       200:
  *         description: Logged in successfully
  *       401:
- *         description: Invalid email or password
+ *         description: Invalid phone number or password
  */
 router.post("/login", login);
 
@@ -176,7 +178,7 @@ router.get("/google/callback", googleCallback);
  * @swagger
  * /api/v1/auth/forgot-password:
  *   post:
- *     summary: Generate a password reset token
+ *     summary: Generate a password reset token by phone number
  *     tags:
  *       - Authentication
  *     requestBody:
@@ -186,17 +188,16 @@ router.get("/google/callback", googleCallback);
  *           schema:
  *             type: object
  *             required:
- *               - email
+ *               - phone
  *             properties:
- *               email:
+ *               phone:
  *                 type: string
- *                 format: email
- *                 example: student@example.com
+ *                 example: "9876543210"
  *     responses:
  *       200:
  *         description: Password reset token generated successfully
  *       400:
- *         description: Email is required
+ *         description: Phone number is required
  *       404:
  *         description: User not found
  *       500:
@@ -234,6 +235,10 @@ router.post(
  *                 format: password
  *                 description: New password (minimum 6 characters)
  *                 example: NewSecurePass123!
+ *               phone:
+ *                 type: string
+ *                 description: Optional user phone number
+ *                 example: "9876543210"
  *               email:
  *                 type: string
  *                 format: email

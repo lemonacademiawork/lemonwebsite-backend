@@ -8,9 +8,10 @@ import crypto from "crypto";
 import { prisma } from "../config/database";
 
 interface RegisterData {
-    name: string;
-    email: string;
+    name?: string;
+    phone: string;
     password: string;
+    email?: string;
 }
 
 interface RefreshTokenPayload extends jwt.JwtPayload {
@@ -30,17 +31,30 @@ interface GoogleUserData {
 export const registerUser = async (data: RegisterData) => {
     const {
         name,
-        email,
+        phone,
         password,
+        email,
     } = data;
 
-    const existingUser = await prisma.user.findUnique({
+    if (!phone || typeof phone !== "string" || !phone.trim()) {
+        throw new Error("Phone number is required");
+    }
+
+    const trimmedPhone = phone.trim();
+
+    const existingUser = await prisma.user.findFirst({
         where: {
-            email,
+            OR: [
+                { phone: trimmedPhone },
+                ...(email && email.trim() ? [{ email: email.trim().toLowerCase() }] : []),
+            ],
         },
     });
 
     if (existingUser) {
+        if (existingUser.phone === trimmedPhone) {
+            throw new Error("Phone number already registered");
+        }
         throw new Error("Email already registered");
     }
 
@@ -54,13 +68,15 @@ export const registerUser = async (data: RegisterData) => {
 
     const user = await prisma.user.create({
         data: {
-            name,
-            email,
+            name: name || "Student",
+            phone: trimmedPhone,
+            ...(email && email.trim() && { email: email.trim().toLowerCase() }),
             passwordHash: hashedPassword,
 
             studentProfile: {
                 create: {
-                    name,
+                    name: name || "Student",
+                    phone: trimmedPhone,
                     referralCode,
                 },
             },
@@ -84,12 +100,18 @@ export const registerUser = async (data: RegisterData) => {
 ========================================================= */
 
 export const loginUser = async (
-    email: string,
+    phone: string,
     password: string
 ) => {
-    const user = await prisma.user.findUnique({
+    if (!phone || typeof phone !== "string" || !phone.trim()) {
+        throw new Error("Phone number is required");
+    }
+
+    const trimmedPhone = phone.trim();
+
+    const user = await prisma.user.findFirst({
         where: {
-            email,
+            phone: trimmedPhone,
         },
         include: {
             studentProfile: true,
@@ -107,7 +129,7 @@ export const loginUser = async (
     });
 
     if (!user) {
-        throw new Error("Invalid email or password");
+        throw new Error("Invalid phone number or password");
     }
 
     if (!user.isActive) {
@@ -120,7 +142,7 @@ export const loginUser = async (
     );
 
     if (!isPasswordValid) {
-        throw new Error("Invalid email or password");
+        throw new Error("Invalid phone number or password");
     }
 
     const accessToken = generateAccessToken(
@@ -188,12 +210,9 @@ export const loginWithGoogle = async (
     /*
      * 2. If Google ID doesn't exist,
      * check using email.
-     *
-     * This handles an existing email/password
-     * account that is now logging in with Google.
      */
     if (!user) {
-        user = await prisma.user.findUnique({
+        user = await prisma.user.findFirst({
             where: {
                 email,
             },
@@ -239,12 +258,6 @@ export const loginWithGoogle = async (
         const referralCode =
             `LEMON-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
 
-        /*
-         * Your current Prisma schema requires
-         * passwordHash, so we generate a random
-         * password hash that the Google user
-         * doesn't know.
-         */
         const randomPasswordHash =
             await bcrypt.hash(
                 crypto.randomUUID(),
@@ -403,7 +416,6 @@ export const refreshUser = async (
     };
 };
 
-
 export const logoutUser = async (
     userId: string
 ) => {
@@ -430,10 +442,21 @@ export const logoutUser = async (
         message: "Logged out successfully",
     };
 };
-export const forgotPassword = async (email: string) => {
-    const user = await prisma.user.findUnique({
+
+/* =========================================================
+   FORGOT PASSWORD
+========================================================= */
+
+export const forgotPassword = async (phone: string) => {
+    if (!phone || typeof phone !== "string" || !phone.trim()) {
+        throw new Error("Phone number is required");
+    }
+
+    const trimmedPhone = phone.trim();
+
+    const user = await prisma.user.findFirst({
         where: {
-            email,
+            phone: trimmedPhone,
         },
     });
 
@@ -463,7 +486,7 @@ export const forgotPassword = async (email: string) => {
     });
 
     const frontendUrl = (process.env.FRONTEND_URL || "https://course-website-f.vercel.app").replace(/\/$/, "");
-    const resetUrl = `${frontendUrl}/reset-password?token=${resetToken}&email=${encodeURIComponent(user.email)}`;
+    const resetUrl = `${frontendUrl}/reset-password?token=${resetToken}&phone=${encodeURIComponent(user.phone || "")}`;
 
     return {
         message: "Password reset token generated successfully",
@@ -479,11 +502,12 @@ export const forgotPassword = async (email: string) => {
 interface ResetPasswordData {
     token: string;
     newPassword: string;
+    phone?: string;
     email?: string;
 }
 
 export const resetPassword = async (data: ResetPasswordData) => {
-    const { token, newPassword, email } = data;
+    const { token, newPassword, phone, email } = data;
 
     if (!token || typeof token !== "string" || !token.trim()) {
         throw new Error("Reset token is required");
@@ -495,8 +519,27 @@ export const resetPassword = async (data: ResetPasswordData) => {
 
     let matchedUser = null;
 
-    if (email && typeof email === "string" && email.trim()) {
-        const user = await prisma.user.findUnique({
+    if (phone && typeof phone === "string" && phone.trim()) {
+        const user = await prisma.user.findFirst({
+            where: { phone: phone.trim() },
+        });
+
+        if (!user || !user.resetPasswordToken || !user.resetPasswordExpiresAt) {
+            throw new Error("Invalid or expired reset token");
+        }
+
+        if (user.resetPasswordExpiresAt < new Date()) {
+            throw new Error("Reset token has expired");
+        }
+
+        const isTokenValid = await bcrypt.compare(token.trim(), user.resetPasswordToken);
+        if (!isTokenValid) {
+            throw new Error("Invalid or expired reset token");
+        }
+
+        matchedUser = user;
+    } else if (email && typeof email === "string" && email.trim()) {
+        const user = await prisma.user.findFirst({
             where: { email: email.trim().toLowerCase() },
         });
 

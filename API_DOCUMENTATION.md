@@ -43,6 +43,8 @@ Roles supported: `STUDENT`, `TRAINER`, `ADMIN`.
 18. [Referrals (`/referrals`)](#18-referrals-apireferrals)
 19. [Student & Trainer Dashboards (`/students`, `/trainers`)](#19-student--trainer-dashboards-apistudents-apitrainers)
 20. [Admin (`/admin`)](#20-admin-apiadmin)
+21. [Coupons (`/coupons`)](#21-coupons-apicoupons)
+22. [Trainer Applications (`/trainer-requests`)](#22-trainer-applications-apitrainer-requests)
 
 ---
 
@@ -57,8 +59,9 @@ Roles supported: `STUDENT`, `TRAINER`, `ADMIN`.
 ```json
 {
   "name": "Sejal Agarwal",
-  "email": "sejal@example.com",
-  "password": "Password123!"
+  "phone": "9876543210",
+  "password": "Password123!",
+  "email": "sejal@example.com"
 }
 ```
 
@@ -71,6 +74,7 @@ Roles supported: `STUDENT`, `TRAINER`, `ADMIN`.
     "user": {
       "id": "c1f7a08b-9e23-4567-8901-abcdef123456",
       "name": "Sejal Agarwal",
+      "phone": "9876543210",
       "email": "sejal@example.com",
       "role": "STUDENT"
     },
@@ -92,7 +96,7 @@ Roles supported: `STUDENT`, `TRAINER`, `ADMIN`.
 #### Request Body
 ```json
 {
-  "email": "sejal@example.com",
+  "phone": "9876543210",
   "password": "Password123!"
 }
 ```
@@ -106,6 +110,7 @@ Roles supported: `STUDENT`, `TRAINER`, `ADMIN`.
     "user": {
       "id": "c1f7a08b-9e23-4567-8901-abcdef123456",
       "name": "Sejal Agarwal",
+      "phone": "9876543210",
       "email": "sejal@example.com",
       "role": "STUDENT",
       "avatarUrl": null
@@ -172,6 +177,7 @@ Roles supported: `STUDENT`, `TRAINER`, `ADMIN`.
   "data": {
     "id": "c1f7a08b-9e23-4567-8901-abcdef123456",
     "name": "Sejal Agarwal",
+    "phone": "9876543210",
     "email": "sejal@example.com",
     "role": "STUDENT",
     "isActive": true,
@@ -190,7 +196,7 @@ Roles supported: `STUDENT`, `TRAINER`, `ADMIN`.
 #### Request Body
 ```json
 {
-  "email": "sejal@example.com"
+  "phone": "9876543210"
 }
 ```
 
@@ -202,7 +208,7 @@ Roles supported: `STUDENT`, `TRAINER`, `ADMIN`.
   "data": {
     "message": "Password reset token generated successfully",
     "resetToken": "4e7a8f9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f",
-    "resetUrl": "https://course-website-f.vercel.app/reset-password?token=4e7a8f9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f&email=sejal%40example.com"
+    "resetUrl": "https://course-website-f.vercel.app/reset-password?token=4e7a8f9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f&phone=9876543210"
   }
 }
 ```
@@ -219,7 +225,7 @@ Roles supported: `STUDENT`, `TRAINER`, `ADMIN`.
 {
   "token": "4e7a8f9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f",
   "newPassword": "NewSecurePassword123!",
-  "email": "sejal@example.com"
+  "phone": "9876543210"
 }
 ```
 
@@ -247,11 +253,12 @@ Roles supported: `STUDENT`, `TRAINER`, `ADMIN`.
   "data": {
     "id": "c1f7a08b-9e23-4567-8901-abcdef123456",
     "name": "Sejal Agarwal",
+    "phone": "9876543210",
     "email": "sejal@example.com",
     "role": "STUDENT",
     "studentProfile": {
       "id": "s1a2b3c4-...",
-      "phone": "+919876543210",
+      "phone": "9876543210",
       "bio": "Soap Making enthusiast",
       "avatarUrl": "https://res.cloudinary.com/.../avatar.jpg"
     }
@@ -785,3 +792,113 @@ Requires `ADMIN` role.
 - `GET /api/v1/admin/orders` — Platform-wide orders and financial ledger
 - `GET /api/v1/admin/courses` — All courses with status
 - `PATCH /api/v1/admin/courses/:id/status` — Approve, reject, or archive courses
+
+---
+
+## 21. Coupons (`/api/v1/coupons`)
+
+### 21.1 Validate / Apply Coupon
+- **Method**: `POST`
+- **Path**: `/api/v1/coupons/validate`
+- **Auth**: Public / Optional Auth
+
+#### Request Body
+```json
+{
+  "code": "LEMON20",
+  "amount": 2999,
+  "courseId": "c1f7a08b-9e23-4567-8901-abcdef123456"
+}
+```
+
+#### Response (`200 OK`)
+```json
+{
+  "success": true,
+  "message": "Coupon applied successfully",
+  "data": {
+    "valid": true,
+    "coupon": {
+      "id": "cp1f7a08b-9e23-4567-8901-abcdef123456",
+      "code": "LEMON20",
+      "description": "20% off all artisan courses",
+      "discountType": "PERCENTAGE",
+      "discountValue": 20,
+      "minOrderAmount": 999,
+      "maxDiscountAmount": 1000,
+      "courseId": null,
+      "courseTitle": null
+    },
+    "originalAmount": 2999,
+    "discountAmount": 599.8,
+    "finalAmount": 2399.2
+  }
+}
+```
+
+### 21.2 Get Active Public Coupons
+- **Method**: `GET`
+- **Path**: `/api/v1/coupons/public`
+- **Auth**: Public
+- **Query Params**: `courseId` (optional)
+
+### 21.3 Admin Coupon Management
+- `GET /api/v1/coupons` — List all coupons (Admin, pagination & search)
+- `POST /api/v1/coupons` — Create a new discount coupon (Admin)
+- `GET /api/v1/coupons/:id` — View coupon details & usage stats (Admin)
+- `PATCH /api/v1/coupons/:id` — Update coupon parameters (Admin)
+- `DELETE /api/v1/coupons/:id` — Delete coupon (Admin)
+
+---
+
+## 22. Trainer Applications (`/api/v1/trainer-requests`)
+
+### 22.1 Submit "Become a Trainer" Application
+- **Method**: `POST`
+- **Path**: `/api/v1/trainer-requests`
+- **Auth**: Public / Optional Bearer token
+
+#### Request Body
+```json
+{
+  "name": "Priya Sharma",
+  "phone": "9876543210",
+  "email": "priya@example.com",
+  "expertise": "Modern Crochet & Amigurumi",
+  "experienceYears": 6,
+  "bio": "Certified fiber artist with 6 years of experience running craft workshops.",
+  "portfolioUrl": "https://instagram.com/crochet_priya",
+  "sampleVideoUrl": "https://youtube.com/watch?v=sample123",
+  "resumeUrl": "https://drive.google.com/file/d/sample"
+}
+```
+
+#### Response (`201 Created`)
+```json
+{
+  "success": true,
+  "message": "Your application to become a trainer has been submitted successfully",
+  "data": {
+    "id": "tr1f7a08b-9e23-4567-8901-abcdef123456",
+    "name": "Priya Sharma",
+    "phone": "9876543210",
+    "email": "priya@example.com",
+    "expertise": "Modern Crochet & Amigurumi",
+    "experienceYears": 6,
+    "status": "PENDING",
+    "createdAt": "2026-03-01T12:00:00.000Z"
+  }
+}
+```
+
+### 22.2 My Trainer Applications
+- **Method**: `GET`
+- **Path**: `/api/v1/trainer-requests/me`
+- **Auth**: Required (`Bearer <token>`)
+
+### 22.3 Admin Trainer Application Management
+- `GET /api/v1/trainer-requests` — List all applications (Admin, filter by status: `PENDING`, `APPROVED`, `REJECTED`)
+- `GET /api/v1/trainer-requests/:id` — Get full application details (Admin)
+- `PATCH /api/v1/trainer-requests/:id/status` — Review application (`status: APPROVED | REJECTED`, `adminNotes`). *Note: Approving automatically elevates user role to `TRAINER` and initializes `TrainerProfile`.*
+- `DELETE /api/v1/trainer-requests/:id` — Delete application (Admin)
+

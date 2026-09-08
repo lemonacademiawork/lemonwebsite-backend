@@ -12,6 +12,8 @@ import galleryRoutes from "./gallery.routes";
 import referralRoutes from "./referral.routes";
 import categoryRoutes from "./category.routes";
 import uploadRoutes from "./upload.routes";
+import couponRoutes from "./coupon.routes";
+import trainerRequestRoutes from "./trainerRequest.routes";
 const router = Router();
 
 router.use("/courses", courseRoutes);
@@ -27,4 +29,6 @@ router.use("/gallery", galleryRoutes);
 router.use("/categories", categoryRoutes);
 router.use("/referrals", referralRoutes);
 router.use("/upload", uploadRoutes);
+router.use("/coupons", couponRoutes);
+router.use("/trainer-requests", trainerRequestRoutes);
 export default router;

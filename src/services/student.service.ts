@@ -8,6 +8,7 @@ export const getMyProfile = async (userId: string) => {
         select: {
             id: true,
             name: true,
+            phone: true,
             email: true,
             role: true,
             isActive: true,
@@ -42,13 +43,39 @@ export const updateMyProfile = async (
         throw new Error("Student profile not found");
     }
 
+    if (data.phone) {
+        const trimmedPhone = data.phone.trim();
+        const existing = await prisma.user.findFirst({
+            where: {
+                phone: trimmedPhone,
+                NOT: { id: userId },
+            },
+        });
+        if (existing) {
+            throw new Error("Phone number is already in use by another account");
+        }
+
+        await prisma.user.update({
+            where: { id: userId },
+            data: {
+                phone: trimmedPhone,
+                ...(data.name !== undefined && { name: data.name }),
+            },
+        });
+    } else if (data.name !== undefined) {
+        await prisma.user.update({
+            where: { id: userId },
+            data: { name: data.name },
+        });
+    }
+
     const updatedProfile = await prisma.studentProfile.update({
         where: {
             userId,
         },
         data: {
             name: data.name,
-            phone: data.phone,
+            phone: data.phone ? data.phone.trim() : data.phone,
             avatarUrl: data.avatarUrl,
             bio: data.bio,
         },

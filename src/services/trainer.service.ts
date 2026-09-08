@@ -9,6 +9,8 @@ export const getMyTrainerProfile = async (userId: string) => {
             user: {
                 select: {
                     id: true,
+                    name: true,
+                    phone: true,
                     email: true,
                     role: true,
                     isActive: true,
@@ -45,13 +47,39 @@ export const updateMyTrainerProfile = async (
         throw new Error("Trainer profile not found");
     }
 
+    if (data.phone) {
+        const trimmedPhone = data.phone.trim();
+        const existing = await prisma.user.findFirst({
+            where: {
+                phone: trimmedPhone,
+                NOT: { id: userId },
+            },
+        });
+        if (existing) {
+            throw new Error("Phone number is already in use by another account");
+        }
+
+        await prisma.user.update({
+            where: { id: userId },
+            data: {
+                phone: trimmedPhone,
+                ...(data.name !== undefined && { name: data.name }),
+            },
+        });
+    } else if (data.name !== undefined) {
+        await prisma.user.update({
+            where: { id: userId },
+            data: { name: data.name },
+        });
+    }
+
     const updatedTrainer = await prisma.trainerProfile.update({
         where: {
             userId,
         },
         data: {
             ...(data.name !== undefined && { name: data.name }),
-            ...(data.phone !== undefined && { phone: data.phone }),
+            ...(data.phone !== undefined && { phone: data.phone.trim() }),
             ...(data.avatarUrl !== undefined && {
                 avatarUrl: data.avatarUrl,
             }),

@@ -8,6 +8,7 @@ interface CreateOrderData {
     currency?: string;
     razorpayOrderId?: string;
     appliedReferralCode?: string;
+    appliedCouponCode?: string;
 }
 
 export const createOrder = async (
@@ -48,10 +49,11 @@ export const createOrder = async (
             status: OrderStatus.PENDING,
             razorpayOrderId: data.razorpayOrderId,
             appliedReferralCode: data.appliedReferralCode,
+            appliedCouponCode: data.appliedCouponCode,
         }
     });
     return order;
-}
+};
 export const getOrders = async (studentId: string) => {
     const orders = await prisma.order.findMany({
         where: {
@@ -130,6 +132,7 @@ export const updateOrder = async (
         status?: "PENDING" | "PAID" | "FAILED" | "CANCELLED" | "REFUNDED";
         razorpayOrderId?: string;
         appliedReferralCode?: string;
+        appliedCouponCode?: string;
     }
 ) => {
     const existingOrder = await prisma.order.findFirst({
@@ -156,6 +159,9 @@ export const updateOrder = async (
             }),
             ...(data.appliedReferralCode !== undefined && {
                 appliedReferralCode: data.appliedReferralCode,
+            }),
+            ...(data.appliedCouponCode !== undefined && {
+                appliedCouponCode: data.appliedCouponCode,
             }),
         },
         include: {

@@ -1,5 +1,6 @@
 import { prisma } from "../config/database";
 import bcrypt from "bcrypt";
+
 export const getCurrentUser = async (userId: string) => {
     const user = await prisma.user.findUnique({
         where: {
@@ -8,6 +9,7 @@ export const getCurrentUser = async (userId: string) => {
         select: {
             id: true,
             name: true,
+            phone: true,
             email: true,
             role: true,
             isActive: true,
@@ -33,6 +35,7 @@ export const getCurrentUser = async (userId: string) => {
 
     return user;
 };
+
 export const updateCurrentUser = async (
     userId: string,
     data: {
@@ -60,6 +63,32 @@ export const updateCurrentUser = async (
         throw new Error("Student profile not found");
     }
 
+    if (data.phone !== undefined && data.phone.trim()) {
+        const trimmedPhone = data.phone.trim();
+        const existing = await prisma.user.findFirst({
+            where: {
+                phone: trimmedPhone,
+                NOT: { id: userId },
+            },
+        });
+        if (existing) {
+            throw new Error("Phone number is already in use by another account");
+        }
+
+        await prisma.user.update({
+            where: { id: userId },
+            data: {
+                phone: trimmedPhone,
+                ...(data.name !== undefined && { name: data.name }),
+            },
+        });
+    } else if (data.name !== undefined) {
+        await prisma.user.update({
+            where: { id: userId },
+            data: { name: data.name },
+        });
+    }
+
     const updatedProfile = await prisma.studentProfile.update({
         where: {
             userId,
@@ -70,7 +99,7 @@ export const updateCurrentUser = async (
             }),
 
             ...(data.phone !== undefined && {
-                phone: data.phone,
+                phone: data.phone.trim(),
             }),
 
             ...(data.bio !== undefined && {
@@ -85,6 +114,7 @@ export const updateCurrentUser = async (
 
     return updatedProfile;
 };
+
 export const changePassword = async (
     userId: string,
     currentPassword: string,
