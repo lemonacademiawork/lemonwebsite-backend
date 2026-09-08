@@ -591,6 +591,7 @@ model TrainerRequest {
   email           String?
   expertise       String
   experienceYears Int?                 @map("experience_years")
+  proposedSchedule String?             @map("proposed_schedule")
   bio             String?
   portfolioUrl    String?              @map("portfolio_url")
   sampleVideoUrl  String?              @map("sample_video_url")

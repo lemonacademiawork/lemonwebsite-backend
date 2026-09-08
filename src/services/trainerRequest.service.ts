@@ -2,46 +2,65 @@ import { prisma } from "../config/database";
 import { TrainerRequestStatus, UserRole } from "@prisma/client";
 
 export interface SubmitTrainerRequestInput {
-    name: string;
-    phone: string;
+    name?: string;
+    fullName?: string;
+    phone?: string;
+    phoneNumber?: string;
     email?: string;
-    expertise: string;
-    experienceYears?: number;
+    emailAddress?: string;
+    expertise?: string;
+    courseSubject?: string;
+    craftSubject?: string;
+    subject?: string;
+    experienceYears?: number | string;
+    experience?: number | string;
+    yearsOfExperience?: number | string;
+    proposedSchedule?: string;
+    classDatesTimes?: string;
+    proposedClassDatesTimes?: string;
+    schedule?: string;
     bio?: string;
     portfolioUrl?: string;
+    portfolio?: string;
+    website?: string;
     sampleVideoUrl?: string;
+    sampleVideo?: string;
+    videoUrl?: string;
     resumeUrl?: string;
+    resume?: string;
 }
 
 export const submitTrainerRequest = async (
     input: SubmitTrainerRequestInput,
     userId?: string
 ) => {
-    const {
-        name,
-        phone,
-        email,
-        expertise,
-        experienceYears,
-        bio,
-        portfolioUrl,
-        sampleVideoUrl,
-        resumeUrl,
-    } = input;
+    const rawName = input.name || input.fullName || "";
+    const rawPhone = input.phone || input.phoneNumber || "";
+    const rawEmail = input.email || input.emailAddress || "";
+    const rawExpertise = input.expertise || input.courseSubject || input.craftSubject || input.subject || "";
+    const rawExperience = input.experienceYears || input.experience || input.yearsOfExperience;
+    const rawSchedule = input.proposedSchedule || input.classDatesTimes || input.proposedClassDatesTimes || input.schedule || "";
+    const rawBio = input.bio || "";
+    const rawPortfolio = input.portfolioUrl || input.portfolio || input.website || "";
+    const rawSampleVideo = input.sampleVideoUrl || input.sampleVideo || input.videoUrl || "";
+    const rawResume = input.resumeUrl || input.resume || "";
 
-    if (!name || !name.trim()) {
-        throw new Error("Name is required");
+    if (!rawName || !rawName.trim()) {
+        throw new Error("Full name is required");
     }
 
-    if (!phone || !phone.trim()) {
+    if (!rawPhone || !rawPhone.trim()) {
         throw new Error("Phone number is required");
     }
 
-    if (!expertise || !expertise.trim()) {
-        throw new Error("Field of expertise is required");
+    if (!rawExpertise || !rawExpertise.trim()) {
+        throw new Error("Course/Craft Subject is required");
     }
 
-    const trimmedPhone = phone.trim();
+    const trimmedPhone = rawPhone.trim();
+    const parsedExpYears = rawExperience !== undefined && rawExperience !== null && !isNaN(Number(rawExperience))
+        ? Number(rawExperience)
+        : null;
 
     // Check if there is already a pending application for this user/phone
     const existingPending = await prisma.trainerRequest.findFirst({
@@ -50,7 +69,7 @@ export const submitTrainerRequest = async (
             OR: [
                 { phone: trimmedPhone },
                 ...(userId ? [{ userId }] : []),
-                ...(email && email.trim() ? [{ email: email.trim().toLowerCase() }] : []),
+                ...(rawEmail && rawEmail.trim() ? [{ email: rawEmail.trim().toLowerCase() }] : []),
             ],
         },
     });
@@ -73,15 +92,16 @@ export const submitTrainerRequest = async (
     const request = await prisma.trainerRequest.create({
         data: {
             userId: effectiveUserId || null,
-            name: name.trim(),
+            name: rawName.trim(),
             phone: trimmedPhone,
-            email: email ? email.trim().toLowerCase() : null,
-            expertise: expertise.trim(),
-            experienceYears: experienceYears ? Number(experienceYears) : null,
-            bio: bio ? bio.trim() : null,
-            portfolioUrl: portfolioUrl ? portfolioUrl.trim() : null,
-            sampleVideoUrl: sampleVideoUrl ? sampleVideoUrl.trim() : null,
-            resumeUrl: resumeUrl ? resumeUrl.trim() : null,
+            email: rawEmail ? rawEmail.trim().toLowerCase() : null,
+            expertise: rawExpertise.trim(),
+            experienceYears: parsedExpYears,
+            proposedSchedule: rawSchedule ? rawSchedule.trim() : null,
+            bio: rawBio ? rawBio.trim() : null,
+            portfolioUrl: rawPortfolio ? rawPortfolio.trim() : null,
+            sampleVideoUrl: rawSampleVideo ? rawSampleVideo.trim() : null,
+            resumeUrl: rawResume ? rawResume.trim() : null,
             status: TrainerRequestStatus.PENDING,
         },
         include: {
