@@ -7,8 +7,10 @@ export const generateAccessToken = (userId: string, role: string): string => {
     throw new Error("JWT_ACCESS_SECRET is missing from environment variables");
   }
 
+  const expiresIn = (process.env.JWT_ACCESS_EXPIRES_IN || "1d") as jwt.SignOptions["expiresIn"];
+
   return jwt.sign({ userId, role }, secret, {
-    expiresIn: "15m",
+    expiresIn,
   });
 };
 
