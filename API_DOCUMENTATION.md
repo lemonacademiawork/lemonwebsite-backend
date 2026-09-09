@@ -985,3 +985,21 @@ Requires `ADMIN` role.
 - `PATCH /api/v1/trainer-requests/:id/status` — Review application (`status: APPROVED | REJECTED`, `adminNotes`). *Note: Approving automatically elevates user role to `TRAINER` and initializes `TrainerProfile`.*
 - `DELETE /api/v1/trainer-requests/:id` — Delete application (Admin)
 
+---
+
+## 23. Homepage Hero Carousel & Banner Slides (`/api/v1/carousel`, `/api/v1/admin/carousel`)
+
+### 23.1 Get Active Carousel Slides (Public)
+- **Method**: `GET`
+- **Path**: `/api/v1/carousel` (or `/api/v1/content/carousel`)
+- **Auth**: Public
+
+### 23.2 Admin Carousel Management
+- `GET /api/v1/admin/carousel` — List all slides (active & inactive)
+- `GET /api/v1/admin/carousel/:id` — Get single slide details
+- `POST /api/v1/admin/carousel` — Create a new hero banner slide
+- `PATCH /api/v1/admin/carousel/:id` — Update slide metadata or toggle visibility
+- `DELETE /api/v1/admin/carousel/:id` — Delete slide
+- `PUT /api/v1/admin/carousel/reorder` — Bulk update slide order sequence `{ "slides": [{ "id": "uuid", "order": 1 }] }`
+
+

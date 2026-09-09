@@ -277,6 +277,79 @@ async function main() {
     }
   }
 
+  // 4. Seed Signature Carousel Hero Slides
+  const existingSlidesCount = await prisma.carouselSlide.count();
+  if (existingSlidesCount === 0) {
+    console.log("🌱 Seeding signature Homepage Hero Carousel slides...");
+    await prisma.carouselSlide.createMany({
+      data: [
+        {
+          title: "Learn. Create. Inspire.",
+          tagline: "Master the art of Lippan Mirror Work",
+          description: "Explore mirror & clay magic in our modern studio classes.",
+          imageUrl: "https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=1200&q=80",
+          route: "/courses",
+          category: "lippan-art",
+          order: 1,
+          isActive: true,
+        },
+        {
+          title: "Crafted with Warmth & Aroma",
+          tagline: "Artisan Soy Candle Making Masterclass",
+          description: "Hand-pour scented botanical candles with pure essential oils.",
+          imageUrl: "https://images.unsplash.com/photo-1603006905003-be475563bc59?w=1200&q=80",
+          route: "/courses",
+          category: "candle-making",
+          order: 2,
+          isActive: true,
+        },
+        {
+          title: "Fluid Dreams in Crystal Clear Resin",
+          tagline: "Master Ocean Resin Art & Geodes",
+          description: "Form realistic ocean waves, crystal geodes, and glossy coasters.",
+          imageUrl: "https://images.unsplash.com/photo-1579783902614-a3fb3927b675?w=1200&q=80",
+          route: "/courses",
+          category: "resin-art",
+          order: 3,
+          isActive: true,
+        },
+        {
+          title: "Assemble Colors Piece by Piece",
+          tagline: "Mosaic Art & Tile Crafting",
+          description: "Transform glass and ceramic pieces into stunning decorative art.",
+          imageUrl: "https://images.unsplash.com/photo-1582561424760-0321d75e81fa?w=1200&q=80",
+          route: "/courses",
+          category: "mosaic-art",
+          order: 4,
+          isActive: true,
+        },
+        {
+          title: "Shape Earth into Timeless Art",
+          tagline: "Hand-building Clay & Studio Pottery",
+          description: "Sculpt organic planters, mugs, and vases with hand-building clay techniques.",
+          imageUrl: "https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?w=1200&q=80",
+          route: "/courses",
+          category: "pottery",
+          order: 5,
+          isActive: true,
+        },
+        {
+          title: "Knit. Weave. Express.",
+          tagline: "Artisan Crochet & Fiber Crafts",
+          description: "Master intricate stitch patterns with step-by-step video guidance.",
+          imageUrl: "https://images.unsplash.com/photo-1584992236310-6edddc08acff?w=1200&q=80",
+          route: "/courses",
+          category: "crochet-basics",
+          order: 6,
+          isActive: true,
+        },
+      ],
+    });
+    console.log("✅ 6 Signature Carousel slides seeded successfully.");
+  } else {
+    console.log(`ℹ️ Carousel slides already exist (${existingSlidesCount} slides).`);
+  }
+
   console.log("✨ Seeding completed successfully!");
 }
 

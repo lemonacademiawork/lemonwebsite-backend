@@ -552,3 +552,19 @@ model TrainerRequest {
 
   @@map("trainer_requests")
 }
+
+model CarouselSlide {
+  id          String   @id @default(uuid())
+  title       String
+  tagline     String?
+  description String?  @db.Text
+  imageUrl    String   @map("image_url")
+  route       String?  @default("/courses")
+  category    String?
+  order       Int      @default(0)
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("carousel_slides")
+}
