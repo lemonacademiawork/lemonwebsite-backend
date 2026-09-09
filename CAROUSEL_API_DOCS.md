@@ -1,69 +1,33 @@
-# 🎨 Creative Content — Homepage Hero Carousel & Banner Slides API
+# Homepage Hero Carousel & Dynamic Settings API Documentation
 
-Complete API reference and integration guide for the **Homepage Hero Carousel & Banner Slides** in Lemon Academia.
-
----
-
-## 1. 🌐 API Overview & Environments
-
-| Environment | Base URL |
-| :--- | :--- |
-| **Production API** | `https://api.lemonhousecraft.in/api/v1` |
-| **Local API** | `http://localhost:5000/api/v1` |
-| **Swagger UI** | `https://api.lemonhousecraft.in/api-docs` |
+This document contains complete API specifications for the **Homepage Hero Carousel** and **System Settings** endpoints, including Public and Admin routes, sample payloads, error states, and frontend integration examples.
 
 ---
 
-## 2. 🗄️ Database Model (`CarouselSlide`)
-
-| Field | Type | Required | Default | Description |
-| :--- | :--- | :--- | :--- | :--- |
-| `id` | String (UUID) | Yes | Auto UUID | Unique identifier |
-| `title` | String | Yes | — | Main headline (e.g. "Learn. Create. Inspire.") |
-| `tagline` | String | No | null | Category badge/subheading (e.g. "Master the art of Lippan Mirror Work") |
-| `description` | String (Text) | No | null | Brief promotional description |
-| `imageUrl` | String (URL) | Yes | — | Cloudinary / CDN hosted image URL |
-| `route` | String | No | `"/courses"` | Target frontend navigation route |
-| `category` | String | No | null | Optional category slug (e.g. `"lippan-art"`, `"candle-making"`) |
-| `order` | Integer | Yes | `0` | Sequence sorting index (Ascending) |
-| `isActive` | Boolean | Yes | `true` | Visibility state on homepage |
-| `createdAt` | DateTime | Yes | Auto | Timestamp created |
-| `updatedAt` | DateTime | Yes | Auto | Timestamp updated |
+## Base URLs
+- **Production**: `https://api.lemonhousecraft.in/api/v1`
+- **Development**: `http://localhost:5000/api/v1`
 
 ---
 
-## 3. 🚀 Endpoints Summary
+## 1. Public Carousel Endpoints
 
-| Endpoint | Method | Auth / Role | Description |
-| :--- | :--- | :--- | :--- |
-| `/api/v1/carousel` | `GET` | Public | Fetch active carousel slides ordered by `order ASC` |
-| `/api/v1/content/carousel` | `GET` | Public | Alias endpoint for public carousel slides |
-| `/api/v1/admin/carousel` | `GET` | Admin (`Bearer`) | Fetch all slides (active and inactive) |
-| `/api/v1/admin/carousel/:id` | `GET` | Admin (`Bearer`) | Get single slide details |
-| `/api/v1/admin/carousel` | `POST` | Admin (`Bearer`) | Create new hero banner slide |
-| `/api/v1/admin/carousel/:id` | `PATCH` | Admin (`Bearer`) | Update slide metadata, image URL, or toggle `isActive` |
-| `/api/v1/admin/carousel/:id` | `DELETE` | Admin (`Bearer`) | Delete a carousel slide |
-| `/api/v1/admin/carousel/reorder` | `PUT` | Admin (`Bearer`) | Bulk update slide order sequence |
-| `/api/v1/upload/image` | `POST` | Authenticated | Upload banner image (`multipart/form-data`) |
+### 1.1 Fetch Active Carousel Slides
+Returns all active creative banner slides for the homepage hero carousel, ordered by display sequence (`order ASC`).
 
----
-
-## 4. 📖 Detailed API Specification
-
-### A. Public Endpoints
-
-#### 4.1 Get Active Carousel Slides
 - **Method**: `GET`
-- **Path**: `/api/v1/carousel` *(or `/api/v1/content/carousel`)*
-- **Auth**: Public
+- **Endpoints** *(Both are supported)*:
+  - `/api/v1/content/carousel`
+  - `/api/v1/carousel`
+- **Authentication**: **Public** (No Bearer token required)
 
-##### Response (`200 OK`)
+#### Success Response (`200 OK`):
 ```json
 {
   "success": true,
   "data": [
     {
-      "id": "f51952e4-9d54-4a2e-a58e-0f11c750e32b",
+      "id": "2195f190-c116-43b9-a4eb-5e045ab5dce2",
       "title": "Learn. Create. Inspire.",
       "tagline": "Master the art of Lippan Mirror Work",
       "description": "Explore mirror & clay magic in our modern studio classes.",
@@ -71,12 +35,13 @@ Complete API reference and integration guide for the **Homepage Hero Carousel & 
       "route": "/courses",
       "category": "lippan-art",
       "order": 1,
+      "active": true,
       "isActive": true,
-      "createdAt": "2026-03-01T10:00:00.000Z",
-      "updatedAt": "2026-03-01T10:00:00.000Z"
+      "createdAt": "2026-09-09T08:15:20.000Z",
+      "updatedAt": "2026-09-09T08:15:20.000Z"
     },
     {
-      "id": "a2432cfb-b516-4357-817e-c80f681a2f64",
+      "id": "e8d7a12b-34ef-4567-89ab-cdef01234567",
       "title": "Crafted with Warmth & Aroma",
       "tagline": "Artisan Soy Candle Making Masterclass",
       "description": "Hand-pour scented botanical candles with pure essential oils.",
@@ -84,9 +49,10 @@ Complete API reference and integration guide for the **Homepage Hero Carousel & 
       "route": "/courses",
       "category": "candle-making",
       "order": 2,
+      "active": true,
       "isActive": true,
-      "createdAt": "2026-03-01T10:00:00.000Z",
-      "updatedAt": "2026-03-01T10:00:00.000Z"
+      "createdAt": "2026-09-09T08:15:20.000Z",
+      "updatedAt": "2026-09-09T08:15:20.000Z"
     }
   ]
 }
@@ -94,127 +60,144 @@ Complete API reference and integration guide for the **Homepage Hero Carousel & 
 
 ---
 
-### B. Admin Management Endpoints
+### 1.2 Fetch Public Dynamic Settings
+Fetches general public configuration parameters stored in the database.
 
-All admin endpoints require an `Authorization: Bearer <ADMIN_JWT_TOKEN>` header.
-
-#### 4.2 List All Slides (Admin)
 - **Method**: `GET`
-- **Path**: `/api/v1/admin/carousel`
-- **Auth**: Admin
+- **Endpoint**: `/api/v1/settings/public?key=homepage_carousel`
+- **Authentication**: **Public** (No Bearer token required)
 
-##### Response (`200 OK`)
-Returns array of all slides (both active and inactive).
+#### Success Response (`200 OK`):
+```json
+{
+  "success": true,
+  "settingKey": "homepage_carousel",
+  "description": "Homepage Hero Carousel Slides",
+  "data": [
+    {
+      "id": "1",
+      "title": "Learn. Create. Inspire.",
+      "tagline": "Master the art of Lippan Mirror Work",
+      "description": "Explore mirror & clay magic.",
+      "imageUrl": "https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=1200&q=80",
+      "route": "/courses",
+      "category": "lippan-art",
+      "active": true
+    }
+  ]
+}
+```
 
 ---
 
-#### 4.3 Create a Hero Banner Slide
-- **Method**: `POST`
-- **Path**: `/api/v1/admin/carousel`
-- **Auth**: Admin
+## 2. Admin Carousel Management Endpoints
 
-##### Request Body (`application/json`)
+All admin endpoints require an Authorization Header:
+```http
+Authorization: Bearer <ADMIN_JWT_TOKEN>
+```
+
+### 2.1 List All Slides (Admin)
+Returns all active and inactive carousel slides.
+- **Method**: `GET`
+- **Endpoint**: `/api/v1/admin/carousel`
+
+#### Response (`200 OK`):
 ```json
 {
-  "title": "Knit. Weave. Express.",
-  "tagline": "Artisan Crochet & Fiber Crafts",
-  "description": "Master intricate stitch patterns with step-by-step guidance.",
-  "imageUrl": "https://images.unsplash.com/photo-1584992236310-6edddc08acff?w=1200&q=80",
-  "route": "/courses",
-  "category": "crochet-basics",
-  "order": 6,
+  "success": true,
+  "data": [
+    {
+      "id": "2195f190-c116-43b9-a4eb-5e045ab5dce2",
+      "title": "Learn. Create. Inspire.",
+      "tagline": "Master the art of Lippan Mirror Work",
+      "description": "Explore mirror & clay magic.",
+      "imageUrl": "https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=1200&q=80",
+      "route": "/courses",
+      "category": "lippan-art",
+      "order": 1,
+      "active": true,
+      "isActive": true
+    }
+  ]
+}
+```
+
+---
+
+### 2.2 Create Carousel Slide
+- **Method**: `POST`
+- **Endpoint**: `/api/v1/admin/carousel`
+
+#### Request Body:
+```json
+{
+  "title": "New Pottery Workshop",
+  "tagline": "Shape Earth into Timeless Art",
+  "description": "Sculpt organic planters, mugs, and vases.",
+  "imageUrl": "https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?w=1200&q=80",
+  "route": "/courses/pottery",
+  "category": "pottery",
+  "order": 3,
   "isActive": true
 }
 ```
 
-##### Response (`201 Created`)
+#### Response (`201 Created`):
 ```json
 {
   "success": true,
   "message": "Carousel slide created successfully",
   "data": {
-    "id": "33b66d48-8df0-4b2e-a579-813c9e6e4a29",
-    "title": "Knit. Weave. Express.",
-    "tagline": "Artisan Crochet & Fiber Crafts",
-    "description": "Master intricate stitch patterns with step-by-step guidance.",
-    "imageUrl": "https://images.unsplash.com/photo-1584992236310-6edddc08acff?w=1200&q=80",
-    "route": "/courses",
-    "category": "crochet-basics",
-    "order": 6,
-    "isActive": true,
-    "createdAt": "2026-03-09T10:00:00.000Z",
-    "updatedAt": "2026-03-09T10:00:00.000Z"
+    "id": "5f3a71b2-1089-4bc2-841f-abcde1234567",
+    "title": "New Pottery Workshop",
+    "tagline": "Shape Earth into Timeless Art",
+    "description": "Sculpt organic planters, mugs, and vases.",
+    "imageUrl": "https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?w=1200&q=80",
+    "route": "/courses/pottery",
+    "category": "pottery",
+    "order": 3,
+    "isActive": true
   }
 }
 ```
 
 ---
 
-#### 4.4 Update Slide Metadata / Toggle Visibility
+### 2.3 Update Carousel Slide
 - **Method**: `PATCH`
-- **Path**: `/api/v1/admin/carousel/:id`
-- **Auth**: Admin
+- **Endpoint**: `/api/v1/admin/carousel/:id`
 
-##### Request Body (`application/json`)
+#### Request Body (Any field can be updated):
 ```json
 {
-  "title": "Updated Headline Title",
-  "imageUrl": "https://res.cloudinary.com/.../new-banner.webp",
-  "isActive": false
+  "title": "Updated Masterclass Title",
+  "isActive": false,
+  "order": 5
 }
 ```
 
-##### Response (`200 OK`)
+#### Response (`200 OK`):
 ```json
 {
   "success": true,
   "message": "Carousel slide updated successfully",
   "data": {
-    "id": "33b66d48-8df0-4b2e-a579-813c9e6e4a29",
-    "title": "Updated Headline Title",
-    "imageUrl": "https://res.cloudinary.com/.../new-banner.webp",
-    "isActive": false
+    "id": "5f3a71b2-1089-4bc2-841f-abcde1234567",
+    "title": "Updated Masterclass Title",
+    "isActive": false,
+    "order": 5
   }
 }
 ```
 
 ---
 
-#### 4.5 Bulk Reorder Slides
-- **Method**: `PUT`
-- **Path**: `/api/v1/admin/carousel/reorder`
-- **Auth**: Admin
-
-##### Request Body (`application/json`)
-```json
-{
-  "slides": [
-    { "id": "33b66d48-8df0-4b2e-a579-813c9e6e4a29", "order": 1 },
-    { "id": "f51952e4-9d54-4a2e-a58e-0f11c750e32b", "order": 2 }
-  ]
-}
-```
-
-##### Response (`200 OK`)
-```json
-{
-  "success": true,
-  "message": "Order updated successfully",
-  "data": [
-    { "id": "33b66d48-8df0-4b2e-a579-813c9e6e4a29", "order": 1 },
-    { "id": "f51952e4-9d54-4a2e-a58e-0f11c750e32b", "order": 2 }
-  ]
-}
-```
-
----
-
-#### 4.6 Delete a Slide
+### 2.4 Delete Carousel Slide
 - **Method**: `DELETE`
-- **Path**: `/api/v1/admin/carousel/:id`
-- **Auth**: Admin
+- **Endpoint**: `/api/v1/admin/carousel/:id`
 
-##### Response (`200 OK`)
+#### Response (`200 OK`):
 ```json
 {
   "success": true,
@@ -224,62 +207,173 @@ Returns array of all slides (both active and inactive).
 
 ---
 
-### C. Media Upload Endpoint
+### 2.5 Bulk Reorder Slides
+- **Method**: `PUT`
+- **Endpoint**: `/api/v1/admin/carousel/reorder`
 
-#### 4.7 Upload Image for Banner
-- **Method**: `POST`
-- **Path**: `/api/v1/upload/image`
-- **Auth**: Required (`Bearer <token>`)
-- **Body**: `multipart/form-data`
-  - `image`: File (JPG, PNG, WebP)
-  - `folder`: String (optional, e.g. `"carousel"`)
+#### Request Body:
+```json
+{
+  "slides": [
+    { "id": "slide_id_1", "order": 1 },
+    { "id": "slide_id_2", "order": 2 },
+    { "id": "slide_id_3", "order": 3 }
+  ]
+}
+```
 
-##### Response (`200 OK`)
+#### Response (`200 OK`):
 ```json
 {
   "success": true,
-  "message": "Image uploaded successfully",
+  "message": "Order updated successfully"
+}
+```
+
+---
+
+### 2.6 Save Raw System Setting (Admin)
+- **Method**: `PUT`
+- **Endpoints**: `/api/v1/admin/settings` OR `/api/v1/settings`
+- **Auth**: `Bearer <ADMIN_TOKEN>`
+
+#### Request Body:
+```json
+{
+  "settingKey": "homepage_carousel",
+  "settingValue": "[{\"id\":\"1\",\"title\":\"Learn. Create. Inspire.\",\"imageUrl\":\"https://res.cloudinary.com/.../img.jpg\",\"route\":\"/courses\",\"active\":true}]",
+  "description": "Homepage Hero Carousel Slides"
+}
+```
+
+#### Response (`200 OK`):
+```json
+{
+  "success": true,
+  "message": "System setting saved successfully",
   "data": {
-    "url": "https://res.cloudinary.com/ovxjar28/image/upload/v12345/lemon_academia/carousel/banner_1.webp",
-    "publicId": "lemon_academia/carousel/banner_1",
-    "format": "webp",
-    "bytes": 345678
+    "id": "setting-uuid",
+    "settingKey": "homepage_carousel",
+    "settingValue": "[{\"id\":\"1\",...}]",
+    "description": "Homepage Hero Carousel Slides"
   }
 }
 ```
 
 ---
 
-## 5. 🎨 Seeded 6 Signature Craft Slides
+## 3. Frontend Integration Code Examples
 
-The database automatically contains the initial 6 signature crafts:
+### 3.1 React / Next.js Custom Hook
+```typescript
+import { useState, useEffect } from "react";
+import axios from "axios";
 
-1. **Lippan Mirror Work** (`category: "lippan-art"`, `order: 1`)
-   - **Headline**: *"Learn. Create. Inspire."*
-   - **Tagline**: *"Master the art of Lippan Mirror Work"*
-   - **Route**: `"/courses"`
+export interface CarouselSlide {
+  id: string;
+  title: string;
+  tagline?: string;
+  description?: string;
+  imageUrl: string;
+  route?: string;
+  category?: string;
+  order: number;
+  active: boolean;
+  isActive: boolean;
+}
 
-2. **Soy Candle Making** (`category: "candle-making"`, `order: 2`)
-   - **Headline**: *"Crafted with Warmth & Aroma"*
-   - **Tagline**: *"Artisan Soy Candle Making Masterclass"*
-   - **Route**: `"/courses"`
+export const useHeroCarousel = () => {
+  const [slides, setSlides] = useState<CarouselSlide[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
 
-3. **Ocean Resin Art** (`category: "resin-art"`, `order: 3`)
-   - **Headline**: *"Fluid Dreams in Crystal Clear Resin"*
-   - **Tagline**: *"Master Ocean Resin Art & Geodes"*
-   - **Route**: `"/courses"`
+  useEffect(() => {
+    const fetchCarousel = async () => {
+      try {
+        setLoading(true);
+        const res = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/v1/content/carousel`
+        );
+        if (res.data?.success && Array.isArray(res.data?.data)) {
+          setSlides(res.data.data);
+        }
+      } catch (err: any) {
+        console.error("Hero carousel fetch error:", err);
+        setError(err.response?.data?.message || err.message || "Failed to fetch carousel");
+      } finally {
+        setLoading(false);
+      }
+    };
 
-4. **Mosaic Art Techniques** (`category: "mosaic-art"`, `order: 4`)
-   - **Headline**: *"Assemble Colors Piece by Piece"*
-   - **Tagline**: *"Mosaic Art & Tile Crafting"*
-   - **Route**: `"/courses"`
+    fetchCarousel();
+  }, []);
 
-5. **Clay Pottery & Sculpting** (`category: "pottery"`, `order: 5`)
-   - **Headline**: *"Shape Earth into Timeless Art"*
-   - **Tagline**: *"Hand-building Clay & Studio Pottery"*
-   - **Route**: `"/courses"`
+  return { slides, loading, error };
+};
+```
 
-6. **Crochet & Fiber Arts** (`category: "crochet-basics"`, `order: 6`)
-   - **Headline**: *"Knit. Weave. Express."*
-   - **Tagline**: *"Artisan Crochet & Fiber Crafts"*
-   - **Route**: `"/courses"`
+---
+
+### 3.2 Slide Component Rendering with Image
+```tsx
+import React from "react";
+import { useHeroCarousel } from "@/hooks/useHeroCarousel";
+
+export const HeroSection = () => {
+  const { slides, loading, error } = useHeroCarousel();
+
+  if (loading) {
+    return <div className="w-full h-[500px] bg-gray-200 animate-pulse rounded-2xl" />;
+  }
+
+  if (error || !slides.length) {
+    return null;
+  }
+
+  return (
+    <section className="relative w-full overflow-hidden rounded-3xl">
+      {slides.map((slide, idx) => (
+        <div key={slide.id} className="relative w-full h-[520px]">
+          {/* Banner Image */}
+          <img
+            src={slide.imageUrl}
+            alt={slide.title}
+            className="w-full h-full object-cover object-center"
+            loading={idx === 0 ? "eager" : "lazy"}
+          />
+
+          {/* Dark Overlay for Text Contrast */}
+          <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/45 to-transparent flex flex-col justify-center px-8 md:px-16 text-white">
+            {slide.category && (
+              <span className="text-amber-400 font-semibold tracking-wider text-xs uppercase mb-2">
+                {slide.category}
+              </span>
+            )}
+            {slide.tagline && (
+              <p className="text-amber-200 text-sm md:text-lg font-medium mb-1">
+                {slide.tagline}
+              </p>
+            )}
+            <h1 className="text-3xl md:text-5xl font-bold max-w-xl mb-4 leading-tight">
+              {slide.title}
+            </h1>
+            {slide.description && (
+              <p className="text-gray-300 text-sm md:text-base max-w-lg mb-6 line-clamp-3">
+                {slide.description}
+              </p>
+            )}
+            <div>
+              <a
+                href={slide.route || "/courses"}
+                className="inline-block bg-amber-500 hover:bg-amber-600 text-stone-900 font-bold px-7 py-3 rounded-full transition shadow-lg"
+              >
+                Explore Courses
+              </a>
+            </div>
+          </div>
+        </div>
+      ))}
+    </section>
+  );
+};
+```

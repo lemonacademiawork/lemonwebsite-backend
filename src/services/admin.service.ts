@@ -6,6 +6,7 @@ import {
     GalleryStatus,
     PaymentStatus,
 } from "@prisma/client";
+import { extractNameFromEmail } from "./auth.service";
 
 export const getAdminDashboard = async () => {
     const [
@@ -39,7 +40,15 @@ export const getAdminDashboard = async () => {
             take: 5,
             orderBy: { createdAt: "desc" },
             include: {
-                student: { select: { id: true, name: true, phone: true, email: true } },
+                student: {
+                    select: {
+                        id: true,
+                        name: true,
+                        phone: true,
+                        email: true,
+                        studentProfile: { select: { name: true, avatarUrl: true } },
+                    },
+                },
                 course: { select: { id: true, title: true } },
             },
         }),
@@ -47,7 +56,15 @@ export const getAdminDashboard = async () => {
             take: 5,
             orderBy: { createdAt: "desc" },
             include: {
-                student: { select: { id: true, name: true, phone: true, email: true } },
+                student: {
+                    select: {
+                        id: true,
+                        name: true,
+                        phone: true,
+                        email: true,
+                        studentProfile: { select: { name: true, avatarUrl: true } },
+                    },
+                },
                 course: { select: { id: true, title: true } },
             },
         }),
@@ -62,9 +79,56 @@ export const getAdminDashboard = async () => {
                 role: true,
                 isActive: true,
                 createdAt: true,
+                studentProfile: { select: { name: true, avatarUrl: true } },
             },
         }),
     ]);
+
+    const formattedRecentUsers = recentUsers.map((u) => {
+        const studentName =
+            (u.studentProfile?.name && u.studentProfile.name.trim().toLowerCase() !== "student" ? u.studentProfile.name.trim() : null) ||
+            (u.name && u.name.trim().toLowerCase() !== "student" ? u.name.trim() : null) ||
+            extractNameFromEmail(u.email);
+
+        return {
+            ...u,
+            name: studentName,
+        };
+    });
+
+    const formattedRecentOrders = recentOrders.map((o) => {
+        const studentName =
+            (o.student?.studentProfile?.name && o.student.studentProfile.name.trim().toLowerCase() !== "student" ? o.student.studentProfile.name.trim() : null) ||
+            (o.student?.name && o.student.name.trim().toLowerCase() !== "student" ? o.student.name.trim() : null) ||
+            extractNameFromEmail(o.student?.email);
+
+        return {
+            ...o,
+            student: o.student
+                ? {
+                    ...o.student,
+                    name: studentName,
+                }
+                : o.student,
+        };
+    });
+
+    const formattedRecentEnrollments = recentEnrollments.map((e) => {
+        const studentName =
+            (e.student?.studentProfile?.name && e.student.studentProfile.name.trim().toLowerCase() !== "student" ? e.student.studentProfile.name.trim() : null) ||
+            (e.student?.name && e.student.name.trim().toLowerCase() !== "student" ? e.student.name.trim() : null) ||
+            extractNameFromEmail(e.student?.email);
+
+        return {
+            ...e,
+            student: e.student
+                ? {
+                    ...e.student,
+                    name: studentName,
+                }
+                : e.student,
+        };
+    });
 
     return {
         stats: {
@@ -79,9 +143,9 @@ export const getAdminDashboard = async () => {
             totalRevenue: revenueData._sum.amount ? Number(revenueData._sum.amount) : 0,
             totalCapturedPayments: revenueData._count,
         },
-        recentOrders,
-        recentEnrollments,
-        recentUsers,
+        recentOrders: formattedRecentOrders,
+        recentEnrollments: formattedRecentEnrollments,
+        recentUsers: formattedRecentUsers,
     };
 };
 
@@ -143,8 +207,27 @@ export const getAdminUsers = async (query: {
         }),
     ]);
 
+    const formattedUsers = users.map((u) => {
+        const studentName =
+            (u.studentProfile?.name && u.studentProfile.name.trim().toLowerCase() !== "student" ? u.studentProfile.name.trim() : null) ||
+            (u.name && u.name.trim().toLowerCase() !== "student" ? u.name.trim() : null) ||
+            (u.trainerProfile?.name && u.trainerProfile.name.trim().toLowerCase() !== "trainer" ? u.trainerProfile.name.trim() : null) ||
+            extractNameFromEmail(u.email);
+
+        return {
+            ...u,
+            name: studentName,
+            studentProfile: u.studentProfile
+                ? {
+                    ...u.studentProfile,
+                    name: studentName,
+                }
+                : u.studentProfile,
+        };
+    });
+
     return {
-        users,
+        users: formattedUsers,
         pagination: {
             total,
             page,
@@ -297,7 +380,7 @@ export const getAdminEnrollments = async (query: {
                         name: true,
                         phone: true,
                         email: true,
-                        studentProfile: { select: { phone: true, avatarUrl: true } },
+                        studentProfile: { select: { name: true, phone: true, avatarUrl: true } },
                     },
                 },
                 course: {
@@ -320,8 +403,25 @@ export const getAdminEnrollments = async (query: {
         }),
     ]);
 
+    const formattedEnrollments = enrollments.map((e) => {
+        const studentName =
+            (e.student?.studentProfile?.name && e.student.studentProfile.name.trim().toLowerCase() !== "student" ? e.student.studentProfile.name.trim() : null) ||
+            (e.student?.name && e.student.name.trim().toLowerCase() !== "student" ? e.student.name.trim() : null) ||
+            extractNameFromEmail(e.student?.email);
+
+        return {
+            ...e,
+            student: e.student
+                ? {
+                    ...e.student,
+                    name: studentName,
+                }
+                : e.student,
+        };
+    });
+
     return {
-        enrollments,
+        enrollments: formattedEnrollments,
         pagination: {
             total,
             page,

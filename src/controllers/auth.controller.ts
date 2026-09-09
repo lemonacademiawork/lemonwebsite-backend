@@ -184,12 +184,13 @@ export const googleCallback = async (
             [payload.given_name, payload.family_name]
                 .filter(Boolean)
                 .join(" ") ||
-            "Student";
+            "";
 
         const googleUser = {
             googleId: payload.sub,
             email: payload.email,
             name: googleName,
+            avatarUrl: payload.picture,
         };
 
         // Login/create user in our database
@@ -230,6 +231,101 @@ export const googleCallback = async (
         return res.status(500).json({
             success: false,
             message,
+        });
+    }
+};
+
+export const googlePostLoginController = async (
+    req: Request,
+    res: Response
+) => {
+    try {
+        const { idToken, credential, token, code, email, name, avatarUrl, picture, googleId } = req.body;
+        const rawToken = idToken || credential || token;
+
+        let googleUser: { googleId: string; email: string; name?: string; avatarUrl?: string };
+
+        if (rawToken) {
+            try {
+                const ticket = await googleClient.verifyIdToken({
+                    idToken: rawToken,
+                    audience: process.env.GOOGLE_CLIENT_ID,
+                });
+                const payload = ticket.getPayload();
+                if (payload && payload.email && payload.sub) {
+                    const extractedName =
+                        payload.name ||
+                        [payload.given_name, payload.family_name].filter(Boolean).join(" ") ||
+                        name ||
+                        undefined;
+
+                    googleUser = {
+                        googleId: payload.sub,
+                        email: payload.email,
+                        name: extractedName,
+                        avatarUrl: payload.picture || avatarUrl || picture,
+                    };
+                } else {
+                    throw new Error("Invalid token payload received from Google");
+                }
+            } catch (verifyErr: any) {
+                // If token verification threw, check if email was supplied directly
+                if (email) {
+                    googleUser = {
+                        googleId: googleId || email,
+                        email,
+                        name,
+                        avatarUrl: avatarUrl || picture,
+                    };
+                } else {
+                    throw new Error(verifyErr.message || "Failed to verify Google token");
+                }
+            }
+        } else if (code) {
+            const { tokens } = await googleClient.getToken(code);
+            if (!tokens.id_token) {
+                throw new Error("Failed to exchange authorization code for Google token");
+            }
+            const ticket = await googleClient.verifyIdToken({
+                idToken: tokens.id_token,
+                audience: process.env.GOOGLE_CLIENT_ID,
+            });
+            const payload = ticket.getPayload();
+            if (!payload || !payload.email || !payload.sub) {
+                throw new Error("Invalid user information in Google token");
+            }
+            googleUser = {
+                googleId: payload.sub,
+                email: payload.email,
+                name: payload.name || [payload.given_name, payload.family_name].filter(Boolean).join(" ") || name,
+                avatarUrl: payload.picture || avatarUrl || picture,
+            };
+        } else if (email) {
+            googleUser = {
+                googleId: googleId || email,
+                email,
+                name,
+                avatarUrl: avatarUrl || picture,
+            };
+        } else {
+            return res.status(400).json({
+                success: false,
+                message: "idToken, credential, authorization code, or email is required for Google login",
+            });
+        }
+
+        const result = await loginWithGoogle(googleUser);
+
+        return res.status(200).json({
+            success: true,
+            message: "Google login successful",
+            data: result,
+        });
+    } catch (error: any) {
+        console.error("Google POST login error:", error);
+        return res.status(400).json({
+            success: false,
+            message: error.message || "Google authentication failed",
         });
     }
 };

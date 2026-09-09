@@ -20,12 +20,6 @@ interface RefreshTokenPayload extends jwt.JwtPayload {
     userId: string;
 }
 
-interface GoogleUserData {
-    googleId: string;
-    email: string;
-    name?: string;
-}
-
 /* =========================================================
    REGISTER
 ========================================================= */
@@ -337,6 +331,43 @@ export const loginUser = async (
     };
 };
 
+export interface GoogleUserData {
+    googleId: string;
+    email: string;
+    name?: string;
+    avatarUrl?: string;
+}
+
+/**
+ * Intelligent helper to extract clean human-readable name from email address
+ * e.g. "komalofficial635@gmail.com" -> "Komal Official"
+ *      "sejalagarwal12.gdsc@gmail.com" -> "Sejal Agarwal"
+ *      "neeraj8987@gmail.com" -> "Neeraj"
+ */
+export const extractNameFromEmail = (email?: string | null): string => {
+    if (!email || typeof email !== "string" || !email.includes("@")) {
+        return "Student";
+    }
+
+    const prefix = email.split("@")[0];
+    const cleaned = prefix
+        .replace(/\b(gdsc|official|work|app|mail|test)\b/gi, "")
+        .replace(/[._\-+]/g, " ")
+        .replace(/\d+/g, "")
+        .trim();
+
+    if (!cleaned || cleaned.length < 2) {
+        const rawClean = prefix.replace(/[._\-+]/g, " ").trim();
+        return rawClean ? rawClean.charAt(0).toUpperCase() + rawClean.slice(1) : "Student";
+    }
+
+    return cleaned
+        .split(/\s+/)
+        .filter(Boolean)
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+        .join(" ");
+};
+
 /* =========================================================
    GOOGLE LOGIN
 ========================================================= */
@@ -348,38 +379,35 @@ export const loginWithGoogle = async (
         googleId,
         email,
         name,
+        avatarUrl,
     } = googleUser;
 
+    const cleanEmail = email.trim().toLowerCase();
+
+    // Determine the most accurate human name
+    const effectiveName =
+        name && name.trim() && name.trim().toLowerCase() !== "student"
+            ? name.trim()
+            : extractNameFromEmail(cleanEmail);
+
     /*
-     * 1. Check whether this Google account
-     * already exists.
+     * 1. Find user by googleId or email
      */
-    let user = await prisma.user.findUnique({
+    let user = await prisma.user.findFirst({
         where: {
-            googleId,
+            OR: [
+                { googleId },
+                { email: cleanEmail },
+            ],
         },
         include: {
             studentProfile: true,
+            trainerProfile: true,
         },
     });
 
     /*
-     * 2. If Google ID doesn't exist,
-     * check using email.
-     */
-    if (!user) {
-        user = await prisma.user.findFirst({
-            where: {
-                email,
-            },
-            include: {
-                studentProfile: true,
-            },
-        });
-    }
-
-    /*
-     * 3. Existing user
+     * 2. Existing user - update missing details
      */
     if (user) {
         if (!user.isActive) {
@@ -388,27 +416,54 @@ export const loginWithGoogle = async (
             );
         }
 
-        /*
-         * Link Google account to existing user
-         * if it isn't already linked.
-         */
-        if (!user.googleId) {
+        const shouldUpdateUserName = !user.name || user.name.trim().toLowerCase() === "student";
+        const shouldUpdateGoogleId = !user.googleId;
+
+        if (shouldUpdateUserName || shouldUpdateGoogleId) {
             user = await prisma.user.update({
                 where: {
                     id: user.id,
                 },
                 data: {
-                    googleId,
+                    ...(shouldUpdateUserName && { name: effectiveName }),
+                    ...(shouldUpdateGoogleId && { googleId }),
                 },
                 include: {
                     studentProfile: true,
+                    trainerProfile: true,
                 },
             });
+        }
+
+        if (user.studentProfile) {
+            const shouldUpdateProfileName =
+                !user.studentProfile.name || user.studentProfile.name.trim().toLowerCase() === "student";
+            const shouldUpdateAvatar = !user.studentProfile.avatarUrl && avatarUrl;
+
+            if (shouldUpdateProfileName || shouldUpdateAvatar) {
+                const updatedProfile = await prisma.studentProfile.update({
+                    where: { id: user.studentProfile.id },
+                    data: {
+                        ...(shouldUpdateProfileName && { name: effectiveName }),
+                        ...(shouldUpdateAvatar && { avatarUrl }),
+                    },
+                });
+                user.studentProfile = updatedProfile;
+            }
+        } else {
+            const newProfile = await prisma.studentProfile.create({
+                data: {
+                    userId: user.id,
+                    name: effectiveName,
+                    avatarUrl: avatarUrl || null,
+                },
+            });
+            user.studentProfile = newProfile;
         }
     }
 
     /*
-     * 4. New Google user
+     * 3. New Google user
      */
     if (!user) {
         const randomPasswordHash =
@@ -419,13 +474,15 @@ export const loginWithGoogle = async (
 
         user = await prisma.user.create({
             data: {
-                email,
+                name: effectiveName,
+                email: cleanEmail,
                 googleId,
                 passwordHash: randomPasswordHash,
 
                 studentProfile: {
                     create: {
-                        name: name || "Student",
+                        name: effectiveName,
+                        avatarUrl: avatarUrl || null,
                     },
                 },
             },

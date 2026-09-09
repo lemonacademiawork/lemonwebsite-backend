@@ -7,6 +7,7 @@ import {
     logout,
     googleLogin,
     googleCallback,
+    googlePostLoginController,
     getMe,
     forgotPasswordController,
     resetPasswordController,
@@ -155,14 +156,38 @@ router.post("/logout", authenticate, logout);
  * @swagger
  * /api/v1/auth/google:
  *   get:
- *     summary: Start Google OAuth login
+ *     summary: Start Google OAuth login (browser redirect)
  *     tags:
  *       - Authentication
  *     responses:
  *       302:
  *         description: Redirects user to Google authentication
+ *   post:
+ *     summary: Log in directly using Google ID Token or credential from frontend
+ *     tags:
+ *       - Authentication
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               idToken:
+ *                 type: string
+ *               credential:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *               name:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Logged in successfully
  */
 router.get("/google", googleLogin);
+router.post("/google", googlePostLoginController);
+router.post("/google-login", googlePostLoginController);
 
 /**
  * @swagger
@@ -174,14 +199,16 @@ router.get("/google", googleLogin);
  *     responses:
  *       200:
  *         description: Google authentication successful
- *       400:
- *         description: Google authorization code missing
- *       401:
- *         description: Google authentication failed
- *       500:
- *         description: Internal server error
+ *   post:
+ *     summary: Process Google auth code or token
+ *     tags:
+ *       - Authentication
+ *     responses:
+ *       200:
+ *         description: Google authentication successful
  */
 router.get("/google/callback", googleCallback);
+router.post("/google/callback", googlePostLoginController);
 
 /**
  * @swagger
