@@ -742,7 +742,8 @@ Costing calculators, packaging, labeling, and selling strategies.
 
 ### 11.3 Razorpay Webhook
 - **Method**: `POST`
-- **Path**: `/api/v1/payments/webhook`
+- **Path**: `/api/webhooks/razorpay` (or `/api/v1/payments/webhook`)
+- **Full Production URL**: `https://api.lemonhousecraft.in/api/webhooks/razorpay`
 - **Auth**: Handled via `x-razorpay-signature` Header
 
 ---

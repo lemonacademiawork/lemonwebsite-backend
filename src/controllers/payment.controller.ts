@@ -21,7 +21,8 @@ export const handleRazorpayWebhookController = async (
             });
         }
 
-        const result = await processRazorpayWebhook(req.body, signature);
+        const payload = (req as any).rawBody || req.body;
+        const result = await processRazorpayWebhook(payload, signature);
 
         return res.status(200).json({
             success: true,

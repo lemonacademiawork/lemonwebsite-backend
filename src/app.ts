@@ -19,6 +19,7 @@ import galleryRoutes from "./routes/gallery.routes";
 import uploadRoutes from "./routes/upload.routes";
 import couponRoutes from "./routes/coupon.routes";
 import trainerRequestRoutes from "./routes/trainerRequest.routes";
+import webhookRoutes from "./routes/webhook.routes";
 // BigInt JSON serialization fix for Express / Prisma
 (BigInt.prototype as any).toJSON = function () {
   return this.toString();
@@ -57,12 +58,23 @@ app.use(
   })
 );
 
-app.use(express.json({ limit: "50mb" }));
+app.use(
+  express.json({
+    limit: "50mb",
+    verify: (req: any, _res, buf) => {
+      req.rawBody = buf.toString("utf8");
+    },
+  })
+);
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 app.use(cookieParser());
 
 // Swagger Documentation
 setupSwagger(app);
+
+// Webhook endpoints (matches https://api.lemonhousecraft.in/api/webhooks/razorpay)
+app.use("/api/webhooks", webhookRoutes);
+app.use("/api/v1/webhooks", webhookRoutes);
 
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/users", userRoutes);
@@ -74,6 +86,7 @@ app.use("/api/v1/courses", resourceRoutes);
 app.use("/api/v1/courses", businessGuidanceRoutes);
 app.use("/api/v1/orders", orderRoutes);
 app.use("/api/v1/payments", paymentRoutes);
+app.use("/api/payments", paymentRoutes);
 app.use("/api/v1/enrollments", enrollmentRoutes);
 app.use("/api/v1/courses", reviewRoutes);
 app.use("/api/v1/reviews", reviewRoutes);
