@@ -34,6 +34,8 @@ export const createCourseController = async (
             discountedPrice,
             thumbnailUrl,
             categoryId,
+            trainerId,
+            isPublished,
         } = req.body;
 
         // Basic validation
@@ -56,8 +58,11 @@ export const createCourseController = async (
                         : undefined,
                 thumbnailUrl,
                 categoryId,
+                trainerId,
+                isPublished: isPublished !== undefined ? Boolean(isPublished) : true,
             },
-            req.user.userId
+            req.user.userId,
+            req.user.role
         );
 
         return res.status(201).json({
@@ -90,12 +95,23 @@ export const getAllCoursesController = async (
     res: Response
 ) => {
     try {
-        const courses = await getAllCourses();
+        const { search, categoryId, trainerId, isPublished, page, limit } = req.query;
+
+        const result = await getAllCourses({
+            search: search ? String(search) : undefined,
+            categoryId: categoryId ? String(categoryId) : undefined,
+            trainerId: trainerId ? String(trainerId) : undefined,
+            isPublished: isPublished !== undefined ? String(isPublished) : undefined,
+            page: page !== undefined ? Number(page) : 1,
+            limit: limit !== undefined ? Number(limit) : 5, // Default 5 courses per page
+        });
 
         return res.status(200).json({
             success: true,
             message: "Courses retrieved successfully",
-            data: courses,
+            data: result,
+            courses: result.courses,
+            pagination: result.pagination,
         });
     } catch (error) {
         console.error("Get all courses error:", error);
@@ -178,6 +194,8 @@ export const updateCourseController = async (
             discountedPrice,
             thumbnailUrl,
             categoryId,
+            trainerId,
+            isPublished,
         } = req.body;
 
         const updatedCourse = await updateCourse(
@@ -197,6 +215,11 @@ export const updateCourseController = async (
                         : undefined,
                 thumbnailUrl,
                 categoryId,
+                trainerId,
+                isPublished:
+                    isPublished !== undefined
+                        ? Boolean(isPublished)
+                        : undefined,
             },
             req.user.role
         );

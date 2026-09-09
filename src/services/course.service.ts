@@ -1,6 +1,6 @@
 import { prisma } from "../config/database";
 
-interface CreateCourseData {
+export interface CreateCourseData {
     title: string;
     slug: string;
     description: string;
@@ -8,11 +8,14 @@ interface CreateCourseData {
     discountedPrice?: number;
     thumbnailUrl?: string;
     categoryId?: string;
+    trainerId?: string;
+    isPublished?: boolean;
 }
 
 export const createCourse = async (
     data: CreateCourseData,
-    trainerId: string
+    creatorUserId: string,
+    userRole?: string
 ) => {
     const existingCourse = await prisma.course.findUnique({
         where: {
@@ -24,6 +27,16 @@ export const createCourse = async (
         throw new Error("Course with this slug already exists");
     }
 
+    // Determine final trainerId:
+    // If trainerId is provided in body (e.g. by Admin), check and use it; otherwise default to creatorUserId
+    let finalTrainerId = data.trainerId || creatorUserId;
+    if (finalTrainerId) {
+        const userExists = await prisma.user.findUnique({ where: { id: finalTrainerId } });
+        if (!userExists) {
+            finalTrainerId = creatorUserId;
+        }
+    }
+
     const course = await prisma.course.create({
         data: {
             title: data.title,
@@ -32,62 +45,125 @@ export const createCourse = async (
             price: data.price,
             discountedPrice: data.discountedPrice,
             thumbnailUrl: data.thumbnailUrl,
-            categoryId: data.categoryId,
-            trainerId,
+            categoryId: data.categoryId || null,
+            trainerId: finalTrainerId,
+            isPublished: data.isPublished !== undefined ? data.isPublished : true, // Default to true
+        },
+        include: {
+            category: true,
+            trainer: {
+                select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                    trainerProfile: true,
+                },
+            },
         },
     });
 
     return course;
 };
-export const getAllCourses = async () => {
-    const courses = await prisma.course.findMany({
-        where: {
-            isPublished: true,
-        },
-        orderBy: {
-            createdAt: "desc",
-        },
-        include: {
-            category: true,
-            trainer: {
-                select: {
-                    id: true,
-                    name: true,
-                    email: true,
-                    trainerProfile: true,
-                },
+
+export interface GetAllCoursesOptions {
+    isPublished?: boolean | string;
+    categoryId?: string;
+    trainerId?: string;
+    search?: string;
+    page?: number;
+    limit?: number;
+}
+
+export const getAllCourses = async (options?: GetAllCoursesOptions) => {
+    const whereClause: any = {};
+
+    if (options?.isPublished !== undefined && options.isPublished !== "all") {
+        if (typeof options.isPublished === "string") {
+            whereClause.isPublished = options.isPublished === "true";
+        } else {
+            whereClause.isPublished = options.isPublished;
+        }
+    }
+
+    if (options?.categoryId) {
+        whereClause.categoryId = options.categoryId;
+    }
+
+    if (options?.trainerId) {
+        whereClause.trainerId = options.trainerId;
+    }
+
+    if (options?.search) {
+        whereClause.OR = [
+            { title: { contains: options.search, mode: "insensitive" } },
+            { description: { contains: options.search, mode: "insensitive" } },
+        ];
+    }
+
+    const page = Math.max(1, Number(options?.page) || 1);
+    const limit = Math.max(1, Number(options?.limit) || 5); // Default 5 courses per page
+    const skip = (page - 1) * limit;
+
+    const [total, courses] = await Promise.all([
+        prisma.course.count({ where: whereClause }),
+        prisma.course.findMany({
+            where: whereClause,
+            skip,
+            take: limit,
+            orderBy: {
+                createdAt: "desc",
             },
-            modules: {
-                where: {
-                    isPublished: true,
+            include: {
+                category: true,
+                trainer: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                        trainerProfile: true,
+                    },
                 },
-                orderBy: {
-                    orderIndex: "asc",
-                },
-                include: {
-                    lessons: {
-                        where: {
-                            isPublished: true,
-                        },
-                        orderBy: {
-                            orderIndex: "asc",
+                modules: {
+                    orderBy: {
+                        orderIndex: "asc",
+                    },
+                    include: {
+                        lessons: {
+                            orderBy: {
+                                orderIndex: "asc",
+                            },
                         },
                     },
                 },
+                procedures: true,
+                resources: true,
+                businessGuidance: true,
+                _count: {
+                    select: {
+                        enrollments: true,
+                        reviews: true,
+                    },
+                },
             },
-            procedures: true,
-            resources: true,
-            businessGuidance: true,
-        },
-    });
+        }),
+    ]);
 
-    return courses;
+    return {
+        courses,
+        pagination: {
+            total,
+            page,
+            limit,
+            totalPages: Math.ceil(total / limit),
+            hasMore: page < Math.ceil(total / limit),
+        },
+    };
 };
+
 export const getCourseById = async (courseId: string) => {
     const course = await prisma.course.findFirst({
         where: {
             id: courseId,
-            isPublished: true,
         },
         include: {
             category: true,
@@ -100,17 +176,11 @@ export const getCourseById = async (courseId: string) => {
                 },
             },
             modules: {
-                where: {
-                    isPublished: true,
-                },
                 orderBy: {
                     orderIndex: "asc",
                 },
                 include: {
                     lessons: {
-                        where: {
-                            isPublished: true,
-                        },
                         orderBy: {
                             orderIndex: "asc",
                         },
@@ -120,6 +190,12 @@ export const getCourseById = async (courseId: string) => {
             procedures: true,
             resources: true,
             businessGuidance: true,
+            _count: {
+                select: {
+                    enrollments: true,
+                    reviews: true,
+                },
+            },
         },
     });
 
@@ -130,7 +206,7 @@ export const getCourseById = async (courseId: string) => {
     return course;
 };
 
-interface UpdateCourseData {
+export interface UpdateCourseData {
     title?: string;
     slug?: string;
     description?: string;
@@ -138,6 +214,8 @@ interface UpdateCourseData {
     discountedPrice?: number;
     thumbnailUrl?: string;
     categoryId?: string;
+    trainerId?: string;
+    isPublished?: boolean;
 }
 
 export const updateCourse = async (
@@ -169,31 +247,39 @@ export const updateCourse = async (
             },
         });
 
-        if (existingCourse) {
+        if (existingCourse && existingCourse.id !== courseId) {
             throw new Error("Course with this slug already exists");
         }
+    }
+
+    const updateData: any = {};
+    if (data.title !== undefined) updateData.title = data.title;
+    if (data.slug !== undefined) updateData.slug = data.slug;
+    if (data.description !== undefined) updateData.description = data.description;
+    if (data.price !== undefined) updateData.price = data.price;
+    if (data.discountedPrice !== undefined) updateData.discountedPrice = data.discountedPrice;
+    if (data.thumbnailUrl !== undefined) updateData.thumbnailUrl = data.thumbnailUrl;
+    if (data.categoryId !== undefined) updateData.categoryId = data.categoryId || null;
+    if (data.isPublished !== undefined) updateData.isPublished = data.isPublished;
+    if (data.trainerId !== undefined && (userRole === "ADMIN" || course.trainerId === trainerId)) {
+        updateData.trainerId = data.trainerId;
     }
 
     const updatedCourse = await prisma.course.update({
         where: {
             id: courseId,
         },
-        data: {
-            ...(data.title !== undefined && { title: data.title }),
-            ...(data.slug !== undefined && { slug: data.slug }),
-            ...(data.description !== undefined && {
-                description: data.description,
-            }),
-            ...(data.price !== undefined && { price: data.price }),
-            ...(data.discountedPrice !== undefined && {
-                discountedPrice: data.discountedPrice,
-            }),
-            ...(data.thumbnailUrl !== undefined && {
-                thumbnailUrl: data.thumbnailUrl,
-            }),
-            ...(data.categoryId !== undefined && {
-                categoryId: data.categoryId,
-            }),
+        data: updateData,
+        include: {
+            category: true,
+            trainer: {
+                select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                    trainerProfile: true,
+                },
+            },
         },
     });
 
@@ -475,6 +561,38 @@ export const getCourseBySlug = async (slug: string) => {
     const course = await prisma.course.findUnique({
         where: {
             slug,
+        },
+        include: {
+            category: true,
+            trainer: {
+                select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                    trainerProfile: true,
+                },
+            },
+            modules: {
+                orderBy: {
+                    orderIndex: "asc",
+                },
+                include: {
+                    lessons: {
+                        orderBy: {
+                            orderIndex: "asc",
+                        },
+                    },
+                },
+            },
+            procedures: true,
+            resources: true,
+            businessGuidance: true,
+            _count: {
+                select: {
+                    enrollments: true,
+                    reviews: true,
+                },
+            },
         },
     });
 

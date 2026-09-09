@@ -247,6 +247,14 @@ export const moderateGallerySubmission = async (
 ) => {
   const existing = await prisma.gallerySubmission.findUnique({
     where: { id },
+    include: {
+      student: {
+        select: { id: true, name: true, phone: true, email: true },
+      },
+      course: {
+        select: { id: true, title: true, trainerId: true },
+      },
+    },
   });
 
   if (!existing) {
@@ -273,10 +281,47 @@ export const moderateGallerySubmission = async (
           id: true,
           title: true,
           slug: true,
+          trainerId: true,
         },
       },
     },
   });
+
+  // When artwork is REJECTED, notify both Student and Trainer
+  if (data.status === "REJECTED") {
+    const feedbackText = data.adminFeedback?.trim()
+      ? ` Feedback: "${data.adminFeedback.trim()}"`
+      : "";
+
+    const notificationsToCreate: Array<{
+      userId: string;
+      title: string;
+      message: string;
+      type: string;
+    }> = [
+      {
+        userId: existing.studentId,
+        title: "Artwork Submission Rejected",
+        message: `Your artwork "${existing.title}" for course "${existing.course?.title || "Course"}" was not approved by admin.${feedbackText}`,
+        type: "GALLERY_REJECTED",
+      },
+    ];
+
+    // If the course has an assigned trainer, notify the trainer too
+    if (existing.course?.trainerId && existing.course.trainerId !== existing.studentId) {
+      const studentName = existing.student?.name || "A student";
+      notificationsToCreate.push({
+        userId: existing.course.trainerId,
+        title: "Student Artwork Rejected",
+        message: `Artwork "${existing.title}" submitted by ${studentName} for course "${existing.course?.title || "Course"}" was rejected by admin.${feedbackText}`,
+        type: "GALLERY_REJECTED",
+      });
+    }
+
+    await prisma.notification.createMany({
+      data: notificationsToCreate,
+    });
+  }
 
   return updated;
 };

@@ -1,7 +1,10 @@
 import { Router } from "express";
 import {
     getMe,
-    updateMe, changePasswordController
+    updateMe,
+    changePasswordController,
+    getMyNotificationsController,
+    markNotificationAsReadController,
 } from "../controllers/user.controller";
 import { authenticate } from "../middleware/auth.middleware";
 
@@ -105,4 +108,45 @@ router.patch(
     authenticate,
     changePasswordController
 );
+
+/**
+ * @swagger
+ * /api/v1/users/me/notifications:
+ *   get:
+ *     summary: Get all notifications for current user (student/trainer)
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Notifications fetched successfully
+ */
+router.get("/me/notifications", authenticate, getMyNotificationsController);
+
+/**
+ * @swagger
+ * /api/v1/users/me/notifications/{notificationId}/read:
+ *   patch:
+ *     summary: Mark a notification as read
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: notificationId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Notification marked as read
+ *       404:
+ *         description: Notification not found
+ */
+router.patch(
+    "/me/notifications/:notificationId/read",
+    authenticate,
+    markNotificationAsReadController
+);
+
 export default router;

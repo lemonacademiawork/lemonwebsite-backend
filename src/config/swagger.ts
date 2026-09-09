@@ -159,6 +159,22 @@ const options: swaggerJsdoc.Options = {
         name: "Gallery",
         description: "Student work showcase, project submissions, and admin moderation APIs",
       },
+      {
+        name: "Carousel",
+        description: "Homepage hero carousel and banner slides APIs",
+      },
+      {
+        name: "Admin Carousel",
+        description: "Admin hero carousel and banner management APIs",
+      },
+      {
+        name: "Coupons",
+        description: "Discount coupon creation and validation APIs",
+      },
+      {
+        name: "Trainer Requests",
+        description: "Trainer application workflow APIs",
+      },
     ],
   },
   apis: [

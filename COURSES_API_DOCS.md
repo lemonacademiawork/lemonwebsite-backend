@@ -43,7 +43,7 @@ Content-Type: application/json
 
 #### Query Parameters
 - `page` (number, default: `1`): Page number
-- `limit` (number, default: `10`): Items per page
+- `limit` (number, default: `5`): Items per page (Default: 5 courses per page)
 - `search` (string, optional): Search keyword for course title / description
 - `categoryId` (string, optional): Filter by Category UUID
 - `level` (string, optional): `BEGINNER`, `INTERMEDIATE`, `ADVANCED`, or `ALL_LEVELS`
