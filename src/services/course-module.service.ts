@@ -158,24 +158,8 @@ export const deleteCourseModule = async (
         throw new Error("Course module not found");
     }
 
-    // Delete business guidance associated with this module
-    await prisma.businessGuidance.deleteMany({
-        where: {
-            moduleId,
-        },
-    });
-
     // Delete progress for lessons in this module
     await prisma.progress.deleteMany({
-        where: {
-            lesson: {
-                moduleId,
-            },
-        },
-    });
-
-    // Delete resources for lessons in this module
-    await prisma.resource.deleteMany({
         where: {
             lesson: {
                 moduleId,

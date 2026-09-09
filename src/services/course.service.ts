@@ -136,8 +136,6 @@ export const getAllCourses = async (options?: GetAllCoursesOptions) => {
                     },
                 },
                 procedures: true,
-                resources: true,
-                businessGuidance: true,
                 _count: {
                     select: {
                         enrollments: true,
@@ -188,8 +186,6 @@ export const getCourseById = async (courseId: string) => {
                 },
             },
             procedures: true,
-            resources: true,
-            businessGuidance: true,
             _count: {
                 select: {
                     enrollments: true,
@@ -365,21 +361,7 @@ export const deleteCourse = async (
         },
     });
 
-    // 9. Delete business guidance
-    await prisma.businessGuidance.deleteMany({
-        where: {
-            courseId,
-        },
-    });
-
-    // 10. Delete resources
-    await prisma.resource.deleteMany({
-        where: {
-            courseId,
-        },
-    });
-
-    // 11. Delete procedures
+    // 9. Delete procedures
     await prisma.procedure.deleteMany({
         where: {
             courseId,
@@ -495,29 +477,11 @@ export const getCourseContent = async (
                                     orderIndex: "asc",
                                 },
                             },
-                            resources: true,
-                        },
-                    },
-                    businessGuidance: {
-                        where: {
-                            isPublished: true,
-                        },
-                        orderBy: {
-                            orderIndex: "asc",
                         },
                     },
                 },
             },
             procedures: {
-                orderBy: {
-                    orderIndex: "asc",
-                },
-            },
-            resources: true,
-            businessGuidance: {
-                where: {
-                    isPublished: true,
-                },
                 orderBy: {
                     orderIndex: "asc",
                 },
@@ -585,8 +549,6 @@ export const getCourseBySlug = async (slug: string) => {
                 },
             },
             procedures: true,
-            resources: true,
-            businessGuidance: true,
             _count: {
                 select: {
                     enrollments: true,

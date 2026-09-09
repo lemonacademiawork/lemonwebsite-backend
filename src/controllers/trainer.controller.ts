@@ -6,7 +6,6 @@ import {
     getMyTrainerCourses,
     getMyTrainerDashboard,
     getMyTrainerStudents,
-    getMyTrainerBusinessGuidance,
     getMyTrainerReviews,
     getMyTrainerGallerySubmissions,
     updateTrainerGalleryFeedback,
@@ -141,33 +140,6 @@ export const getMyTrainerStudentsController = async (
             success: true,
             message: "Trainer students fetched successfully",
             data: students,
-        });
-    } catch (error: any) {
-        return res.status(500).json({
-            success: false,
-            message: error.message,
-        });
-    }
-};
-
-export const getMyTrainerBusinessGuidanceController = async (
-    req: Request,
-    res: Response
-) => {
-    try {
-        if (!req.user) {
-            return res.status(401).json({
-                success: false,
-                message: "Unauthorized",
-            });
-        }
-
-        const guidance = await getMyTrainerBusinessGuidance(req.user.userId);
-
-        return res.status(200).json({
-            success: true,
-            message: "Trainer business guidance fetched successfully",
-            data: guidance,
         });
     } catch (error: any) {
         return res.status(500).json({

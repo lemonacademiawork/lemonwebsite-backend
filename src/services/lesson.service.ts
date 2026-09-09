@@ -227,13 +227,6 @@ export const deleteLesson = async (
         },
     });
 
-    // Delete resources for this lesson
-    await prisma.resource.deleteMany({
-        where: {
-            lessonId,
-        },
-    });
-
     // Delete procedures for this lesson
     await prisma.procedure.deleteMany({
         where: {

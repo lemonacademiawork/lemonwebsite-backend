@@ -134,7 +134,6 @@ export const getMyTrainerDashboard = async (userId: string) => {
         totalEnrollments,
         reviewStats,
         pendingGalleryReviews,
-        upcomingSessions,
         recentCourses,
     ] = await Promise.all([
         prisma.course.count({
@@ -156,26 +155,6 @@ export const getMyTrainerDashboard = async (userId: string) => {
             where: {
                 course: { trainerId: userId },
                 trainerFeedback: null,
-            },
-        }),
-        prisma.businessGuidance.findMany({
-            where: {
-                trainerId: userId,
-                meetingTime: {
-                    gte: new Date(),
-                },
-            },
-            take: 5,
-            orderBy: {
-                meetingTime: "asc",
-            },
-            include: {
-                course: {
-                    select: {
-                        id: true,
-                        title: true,
-                    },
-                },
             },
         }),
         prisma.course.findMany({
@@ -202,7 +181,6 @@ export const getMyTrainerDashboard = async (userId: string) => {
             averageRating: reviewStats._avg.rating || 0,
             pendingGalleryReviews,
         },
-        upcomingSessions,
         recentCourses,
     };
 };
@@ -242,33 +220,6 @@ export const getMyTrainerStudents = async (userId: string) => {
     });
 
     return enrollments;
-};
-
-export const getMyTrainerBusinessGuidance = async (userId: string) => {
-    const guidance = await prisma.businessGuidance.findMany({
-        where: {
-            trainerId: userId,
-        },
-        include: {
-            course: {
-                select: {
-                    id: true,
-                    title: true,
-                },
-            },
-            module: {
-                select: {
-                    id: true,
-                    title: true,
-                },
-            },
-        },
-        orderBy: {
-            createdAt: "desc",
-        },
-    });
-
-    return guidance;
 };
 
 export const getMyTrainerReviews = async (userId: string) => {

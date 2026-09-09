@@ -44,15 +44,6 @@ enum GalleryStatus {
   REJECTED
 }
 
-enum BusinessGuidanceType {
-  RECORDING
-  PDF
-  DOCUMENT
-  TEXT
-  MEETING_LINK
-  SCHEDULED_SESSION
-}
-
 enum BlogStatus {
   DRAFT
   PENDING_REVIEW
@@ -100,7 +91,6 @@ model User {
   certificates            Certificate[]
   gallerySubmissions      GallerySubmission[]  @relation("StudentGallerySubmissions")
   moderatedGallery        GallerySubmission[]  @relation("ModeratedGallerySubmissions")
-  businessGuidance        BusinessGuidance[]
   blogs                   Blog[]
   reviews                 Review[]
   notifications           Notification[]
@@ -175,13 +165,11 @@ model Course {
   trainer            User?               @relation("TrainerCourses", fields: [trainerId], references: [id], onDelete: SetNull)
   modules            CourseModule[]
   procedures         Procedure[]
-  resources          Resource[]
   orders             Order[]
   enrollments        Enrollment[]
   progress           Progress[]
   certificates       Certificate[]
   gallerySubmissions GallerySubmission[]
-  businessGuidance   BusinessGuidance[]
   reviews            Review[]
   coupons            Coupon[]
 
@@ -200,7 +188,6 @@ model CourseModule {
 
   course           Course             @relation(fields: [courseId], references: [id], onDelete: Cascade)
   lessons          Lesson[]
-  businessGuidance BusinessGuidance[]
 
   @@unique([courseId, orderIndex])
   @@map("course_modules")
@@ -225,7 +212,6 @@ model Lesson {
 
   module     CourseModule @relation(fields: [moduleId], references: [id], onDelete: Cascade)
   procedures Procedure[]
-  resources  Resource[]
   progress   Progress[]
 
   @@unique([moduleId, orderIndex])
@@ -244,28 +230,8 @@ model Procedure {
 
   lesson    Lesson?    @relation(fields: [lessonId], references: [id], onDelete: Cascade)
   course    Course     @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  resources Resource[]
 
   @@map("procedures")
-}
-
-model Resource {
-  id          String   @id @default(uuid())
-  courseId    String   @map("course_id")
-  lessonId    String?  @map("lesson_id")
-  procedureId String?  @map("procedure_id")
-  title       String
-  fileUrl     String   @map("file_url")
-  fileType    String   @map("file_type")
-  fileSize    BigInt?  @default(0) @map("file_size")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
-  course    Course     @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  lesson    Lesson?    @relation(fields: [lessonId], references: [id], onDelete: SetNull)
-  procedure Procedure? @relation(fields: [procedureId], references: [id], onDelete: SetNull)
-
-  @@map("resources")
 }
 
 model Order {
@@ -369,28 +335,6 @@ model GallerySubmission {
   moderator User?  @relation("ModeratedGallerySubmissions", fields: [moderatedBy], references: [id], onDelete: SetNull)
 
   @@map("gallery_submissions")
-}
-
-model BusinessGuidance {
-  id          String               @id @default(uuid())
-  courseId    String?              @map("course_id")
-  trainerId   String?              @map("trainer_id")
-  moduleId    String?              @map("module_id")
-  title       String
-  contentType BusinessGuidanceType @default(RECORDING) @map("content_type")
-  description String?
-  resourceUrl String?              @map("resource_url")
-  meetingTime DateTime?            @map("meeting_time")
-  orderIndex  Int                  @default(1) @map("order_index")
-  isPublished Boolean              @default(true) @map("is_published")
-  createdAt   DateTime             @default(now()) @map("created_at")
-  updatedAt   DateTime             @updatedAt @map("updated_at")
-
-  course  Course?       @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  trainer User?         @relation(fields: [trainerId], references: [id], onDelete: SetNull)
-  module  CourseModule? @relation(fields: [moduleId], references: [id], onDelete: Cascade)
-
-  @@map("business_guidance")
 }
 
 model BlogCategory {

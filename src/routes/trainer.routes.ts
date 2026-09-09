@@ -6,7 +6,6 @@ import {
     getMyTrainerCoursesController,
     getMyTrainerDashboardController,
     getMyTrainerStudentsController,
-    getMyTrainerBusinessGuidanceController,
     getMyTrainerReviewsController,
     getMyTrainerGallerySubmissionsController,
     updateTrainerGalleryFeedbackController,
@@ -139,28 +138,6 @@ router.get(
     "/me/students",
     authenticate,
     getMyTrainerStudentsController
-);
-
-/**
- * @swagger
- * /api/v1/trainers/me/business-guidance:
- *   get:
- *     summary: Get all business guidance sessions/materials by the trainer
- *     tags: [Trainers]
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: Trainer business guidance fetched successfully
- *       401:
- *         description: Authentication required
- *       500:
- *         description: Server error
- */
-router.get(
-    "/me/business-guidance",
-    authenticate,
-    getMyTrainerBusinessGuidanceController
 );
 
 /**

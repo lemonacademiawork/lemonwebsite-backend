@@ -116,14 +116,6 @@ const options: swaggerJsdoc.Options = {
         description: "Course lesson video & content APIs",
       },
       {
-        name: "Business Guidance",
-        description: "Business guidance and advisory APIs",
-      },
-      {
-        name: "Resources",
-        description: "Downloadable course resources APIs",
-      },
-      {
         name: "Procedures",
         description: "Course step-by-step procedures APIs",
       },
