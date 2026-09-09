@@ -105,10 +105,81 @@ export const seedDefaultCarouselSlides = async () => {
 };
 
 /**
+ * Helper to normalize and map slide attributes with all field aliases
+ */
+const normalizeSlide = (slide: any, index: number) => {
+  const img =
+    slide.imageUrl ||
+    slide.url ||
+    slide.image ||
+    slide.bannerUrl ||
+    slide.src ||
+    slide.image_url ||
+    "";
+
+  const title = slide.title || slide.heading || slide.name || "";
+  const tagline = slide.tagline || slide.subtitle || slide.subTitle || slide.sub_title || "";
+  const description = slide.description || slide.desc || "";
+  const route = slide.route || slide.link || slide.href || slide.ctaLink || "/courses";
+  const category = slide.category || "";
+  const order = slide.order !== undefined ? Number(slide.order) : index + 1;
+  const active =
+    slide.active !== undefined
+      ? Boolean(slide.active)
+      : slide.isActive !== undefined
+      ? Boolean(slide.isActive)
+      : true;
+
+  return {
+    id: String(slide.id || `slide-${index + 1}`),
+    title,
+    heading: title,
+    tagline,
+    subtitle: tagline,
+    subTitle: tagline,
+    description,
+    imageUrl: img,
+    url: img,
+    image: img,
+    bannerUrl: img,
+    src: img,
+    route,
+    link: route,
+    category,
+    order,
+    active,
+    isActive: active,
+    createdAt: slide.createdAt || new Date().toISOString(),
+    updatedAt: slide.updatedAt || new Date().toISOString(),
+  };
+};
+
+/**
  * Get active slides for public homepage hero carousel
  */
 export const getPublicCarouselSlides = async () => {
-  // Ensure default slides are present if empty
+  // 1. First check if admin saved slides in system_settings table
+  const setting = await prisma.systemSetting.findUnique({
+    where: { settingKey: "homepage_carousel" },
+  });
+
+  if (setting && setting.settingValue) {
+    try {
+      const parsed = JSON.parse(setting.settingValue);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        const activeOnly = parsed.filter(
+          (s: any) => s.active !== false && s.isActive !== false
+        );
+        if (activeOnly.length > 0) {
+          return activeOnly.map((s, idx) => normalizeSlide(s, idx));
+        }
+      }
+    } catch (e) {
+      console.error("Failed to parse homepage_carousel settingValue:", e);
+    }
+  }
+
+  // 2. Fallback to carousel_slides table
   const count = await prisma.carouselSlide.count();
   if (count === 0) {
     await seedDefaultCarouselSlides();
@@ -122,26 +193,29 @@ export const getPublicCarouselSlides = async () => {
     ],
   });
 
-  return slides.map((slide) => ({
-    id: slide.id,
-    title: slide.title,
-    tagline: slide.tagline,
-    description: slide.description,
-    imageUrl: slide.imageUrl,
-    route: slide.route,
-    category: slide.category,
-    order: slide.order,
-    active: slide.isActive,
-    isActive: slide.isActive,
-    createdAt: slide.createdAt,
-    updatedAt: slide.updatedAt,
-  }));
+  return slides.map((slide, idx) => normalizeSlide(slide, idx));
 };
 
 /**
  * Get all slides (active & inactive) for Admin
  */
 export const getAdminCarouselSlides = async () => {
+  // Check system_settings first
+  const setting = await prisma.systemSetting.findUnique({
+    where: { settingKey: "homepage_carousel" },
+  });
+
+  if (setting && setting.settingValue) {
+    try {
+      const parsed = JSON.parse(setting.settingValue);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed.map((s, idx) => normalizeSlide(s, idx));
+      }
+    } catch (e) {
+      console.error("Failed to parse admin homepage_carousel settingValue:", e);
+    }
+  }
+
   const count = await prisma.carouselSlide.count();
   if (count === 0) {
     await seedDefaultCarouselSlides();
@@ -154,20 +228,7 @@ export const getAdminCarouselSlides = async () => {
     ],
   });
 
-  return slides.map((slide) => ({
-    id: slide.id,
-    title: slide.title,
-    tagline: slide.tagline,
-    description: slide.description,
-    imageUrl: slide.imageUrl,
-    route: slide.route,
-    category: slide.category,
-    order: slide.order,
-    active: slide.isActive,
-    isActive: slide.isActive,
-    createdAt: slide.createdAt,
-    updatedAt: slide.updatedAt,
-  }));
+  return slides.map((slide, idx) => normalizeSlide(slide, idx));
 };
 
 /**

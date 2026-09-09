@@ -21,6 +21,7 @@ export const getPublicCarouselSlidesController = async (
     return res.status(200).json({
       success: true,
       data: slides,
+      slides: slides,
     });
   } catch (error) {
     console.error("Get public carousel slides error:", error);

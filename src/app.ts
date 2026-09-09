@@ -95,8 +95,12 @@ app.use("/api/v1/coupons", couponRoutes);
 app.use("/api/v1/trainer-requests", trainerRequestRoutes);
 app.use("/api/v1/carousel", carouselRoutes);
 app.use("/api/v1/content/carousel", carouselRoutes);
+app.use("/api/carousel", carouselRoutes);
+app.use("/api/content/carousel", carouselRoutes);
 app.use("/api/v1/admin/carousel", adminCarouselRoutes);
+app.use("/api/admin/carousel", adminCarouselRoutes);
 app.use("/api/v1/settings", settingsRoutes);
+app.use("/api/settings", settingsRoutes);
 app.use("/api/v1", routes);
 
 // Global error handling middleware (handles JSON syntax errors from body-parser)

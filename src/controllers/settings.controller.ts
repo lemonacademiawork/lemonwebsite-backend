@@ -24,6 +24,44 @@ export const getPublicSettingsController = async (req: Request, res: Response) =
           parsedValue = setting.settingValue;
         }
 
+        if (Array.isArray(parsedValue)) {
+          const normalized = parsedValue.map((slide: any, index: number) => {
+            const img = slide.imageUrl || slide.url || slide.image || slide.bannerUrl || slide.src || "";
+            const title = slide.title || slide.heading || slide.name || "";
+            const tagline = slide.tagline || slide.subtitle || slide.subTitle || "";
+            const description = slide.description || slide.desc || "";
+            const route = slide.route || slide.link || "/courses";
+            const active = slide.active !== undefined ? Boolean(slide.active) : true;
+            return {
+              ...slide,
+              id: String(slide.id || index + 1),
+              title,
+              heading: title,
+              tagline,
+              subtitle: tagline,
+              subTitle: tagline,
+              description,
+              imageUrl: img,
+              url: img,
+              image: img,
+              bannerUrl: img,
+              src: img,
+              route,
+              link: route,
+              active,
+              isActive: active,
+            };
+          });
+
+          return res.status(200).json({
+            success: true,
+            settingKey: setting.settingKey,
+            description: setting.description,
+            data: normalized,
+            slides: normalized,
+          });
+        }
+
         return res.status(200).json({
           success: true,
           settingKey: setting.settingKey,
@@ -40,6 +78,7 @@ export const getPublicSettingsController = async (req: Request, res: Response) =
           settingKey: "homepage_carousel",
           description: "Homepage Hero Carousel Slides",
           data: slides,
+          slides: slides,
         });
       }
 
