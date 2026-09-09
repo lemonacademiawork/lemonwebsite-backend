@@ -114,13 +114,28 @@ export const getPublicCarouselSlides = async () => {
     await seedDefaultCarouselSlides();
   }
 
-  return await prisma.carouselSlide.findMany({
+  const slides = await prisma.carouselSlide.findMany({
     where: { isActive: true },
     orderBy: [
       { order: "asc" },
       { createdAt: "asc" },
     ],
   });
+
+  return slides.map((slide) => ({
+    id: slide.id,
+    title: slide.title,
+    tagline: slide.tagline,
+    description: slide.description,
+    imageUrl: slide.imageUrl,
+    route: slide.route,
+    category: slide.category,
+    order: slide.order,
+    active: slide.isActive,
+    isActive: slide.isActive,
+    createdAt: slide.createdAt,
+    updatedAt: slide.updatedAt,
+  }));
 };
 
 /**
@@ -132,12 +147,27 @@ export const getAdminCarouselSlides = async () => {
     await seedDefaultCarouselSlides();
   }
 
-  return await prisma.carouselSlide.findMany({
+  const slides = await prisma.carouselSlide.findMany({
     orderBy: [
       { order: "asc" },
       { createdAt: "desc" },
     ],
   });
+
+  return slides.map((slide) => ({
+    id: slide.id,
+    title: slide.title,
+    tagline: slide.tagline,
+    description: slide.description,
+    imageUrl: slide.imageUrl,
+    route: slide.route,
+    category: slide.category,
+    order: slide.order,
+    active: slide.isActive,
+    isActive: slide.isActive,
+    createdAt: slide.createdAt,
+    updatedAt: slide.updatedAt,
+  }));
 };
 
 /**

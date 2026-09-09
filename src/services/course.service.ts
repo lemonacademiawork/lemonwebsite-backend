@@ -7,6 +7,8 @@ export interface CreateCourseData {
     price: number;
     discountedPrice?: number;
     thumbnailUrl?: string;
+    startDate?: string | Date | null;
+    endDate?: string | Date | null;
     categoryId?: string;
     trainerId?: string;
     isPublished?: boolean;
@@ -45,6 +47,8 @@ export const createCourse = async (
             price: data.price,
             discountedPrice: data.discountedPrice,
             thumbnailUrl: data.thumbnailUrl,
+            startDate: data.startDate ? new Date(data.startDate) : null,
+            endDate: data.endDate ? new Date(data.endDate) : null,
             categoryId: data.categoryId || null,
             trainerId: finalTrainerId,
             isPublished: data.isPublished !== undefined ? data.isPublished : true, // Default to true
@@ -209,6 +213,8 @@ export interface UpdateCourseData {
     price?: number;
     discountedPrice?: number;
     thumbnailUrl?: string;
+    startDate?: string | Date | null;
+    endDate?: string | Date | null;
     categoryId?: string;
     trainerId?: string;
     isPublished?: boolean;
@@ -255,6 +261,8 @@ export const updateCourse = async (
     if (data.price !== undefined) updateData.price = data.price;
     if (data.discountedPrice !== undefined) updateData.discountedPrice = data.discountedPrice;
     if (data.thumbnailUrl !== undefined) updateData.thumbnailUrl = data.thumbnailUrl;
+    if (data.startDate !== undefined) updateData.startDate = data.startDate ? new Date(data.startDate) : null;
+    if (data.endDate !== undefined) updateData.endDate = data.endDate ? new Date(data.endDate) : null;
     if (data.categoryId !== undefined) updateData.categoryId = data.categoryId || null;
     if (data.isPublished !== undefined) updateData.isPublished = data.isPublished;
     if (data.trainerId !== undefined && (userRole === "ADMIN" || course.trainerId === trainerId)) {

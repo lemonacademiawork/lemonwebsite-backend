@@ -20,6 +20,7 @@ import trainerRequestRoutes from "./routes/trainerRequest.routes";
 import webhookRoutes from "./routes/webhook.routes";
 import carouselRoutes from "./routes/carousel.routes";
 import adminCarouselRoutes from "./routes/admin-carousel.routes";
+import settingsRoutes from "./routes/settings.routes";
 // BigInt JSON serialization fix for Express / Prisma
 (BigInt.prototype as any).toJSON = function () {
   return this.toString();
@@ -95,6 +96,7 @@ app.use("/api/v1/trainer-requests", trainerRequestRoutes);
 app.use("/api/v1/carousel", carouselRoutes);
 app.use("/api/v1/content/carousel", carouselRoutes);
 app.use("/api/v1/admin/carousel", adminCarouselRoutes);
+app.use("/api/v1/settings", settingsRoutes);
 app.use("/api/v1", routes);
 
 // Global error handling middleware (handles JSON syntax errors from body-parser)

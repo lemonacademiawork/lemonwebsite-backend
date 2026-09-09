@@ -156,10 +156,12 @@ model Course {
   description     String
   price           Decimal  @db.Decimal(10, 2)
   discountedPrice Decimal? @map("discounted_price") @db.Decimal(10, 2)
-  thumbnailUrl    String?  @map("thumbnail_url")
-  isPublished     Boolean  @default(false) @map("is_published")
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
+  thumbnailUrl    String?   @map("thumbnail_url")
+  startDate       DateTime? @map("start_date")
+  endDate         DateTime? @map("end_date")
+  isPublished     Boolean   @default(false) @map("is_published")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
 
   category           Category?           @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   trainer            User?               @relation("TrainerCourses", fields: [trainerId], references: [id], onDelete: SetNull)

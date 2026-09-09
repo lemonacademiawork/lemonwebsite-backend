@@ -33,6 +33,8 @@ export const createCourseController = async (
             price,
             discountedPrice,
             thumbnailUrl,
+            startDate,
+            endDate,
             categoryId,
             trainerId,
             isPublished,
@@ -57,6 +59,8 @@ export const createCourseController = async (
                         ? Number(discountedPrice)
                         : undefined,
                 thumbnailUrl,
+                startDate,
+                endDate,
                 categoryId,
                 trainerId,
                 isPublished: isPublished !== undefined ? Boolean(isPublished) : true,
@@ -193,6 +197,8 @@ export const updateCourseController = async (
             price,
             discountedPrice,
             thumbnailUrl,
+            startDate,
+            endDate,
             categoryId,
             trainerId,
             isPublished,
@@ -214,6 +220,8 @@ export const updateCourseController = async (
                         ? Number(discountedPrice)
                         : undefined,
                 thumbnailUrl,
+                startDate,
+                endDate,
                 categoryId,
                 trainerId,
                 isPublished:

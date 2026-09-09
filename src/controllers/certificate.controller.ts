@@ -47,7 +47,13 @@ export const createCertificateController = async (
       });
     }
 
-    if (message === "Certificate already exists") {
+    if (
+      message.startsWith("Course incomplete:") ||
+      message.startsWith("Course schedule active:") ||
+      message.includes("You must be actively enrolled") ||
+      message.includes("This course does not have any published lessons") ||
+      message === "Certificate already exists"
+    ) {
       return res.status(400).json({
         success: false,
         message,
@@ -132,6 +138,17 @@ export const getCertificateByCourseController = async (
       return res.status(404).json({
         success: false,
         message: "Course not found",
+      });
+    }
+
+    if (
+      message.startsWith("Course incomplete:") ||
+      message.startsWith("Course schedule active:") ||
+      message.includes("You are not enrolled")
+    ) {
+      return res.status(400).json({
+        success: false,
+        message,
       });
     }
 
