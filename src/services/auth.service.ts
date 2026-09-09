@@ -139,10 +139,11 @@ export const registerUser = async (data: RegisterData) => {
    PHONE & USER LOOKUP HELPER
 ========================================================= */
 
-// In-memory fallback OTP storage for pre-registration or rapid OTP verification
+// In-memory OTP storage for rapid OTP verification (no DB writes)
 interface StoredOtpInfo {
     hash: string;
     expiresAt: number;
+    userId?: string;
     phone?: string;
     email?: string;
 }
@@ -664,29 +665,30 @@ export const forgotPassword = async (identifier: string) => {
 
     const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
 
-    // Store hash of 6-digit OTP code in DB
+    // Store hash of 6-digit OTP code in memory cache (Not in PostgreSQL)
     const resetTokenHash = await bcrypt.hash(otpCode, 10);
-    const resetPasswordExpiresAt = new Date(Date.now() + 15 * 60 * 1000);
+    const expiresAt = Date.now() + 15 * 60 * 1000;
 
-    await prisma.user.update({
-        where: { id: user.id },
-        data: {
-            resetPasswordToken: resetTokenHash,
-            resetPasswordExpiresAt,
-        },
-    });
-
-    // Also store in memory cache for instant matching
-    const targetKey = (user.phone || user.email || identifier).trim().toLowerCase();
-    otpMemoryCache.set(targetKey, {
+    const otpPayload: StoredOtpInfo = {
         hash: resetTokenHash,
-        expiresAt: resetPasswordExpiresAt.getTime(),
+        expiresAt,
+        userId: user.id,
         phone: user.phone || undefined,
         email: user.email || undefined,
-    });
+    };
+
+    const targetKey = (user.phone || user.email || identifier).trim().toLowerCase();
+    otpMemoryCache.set(targetKey, otpPayload);
+    otpMemoryCache.set(user.id, otpPayload);
+
     if (user.phone) {
-        const last10 = user.phone.replace(/\D/g, "").slice(-10);
-        if (last10) otpMemoryCache.set(last10, { hash: resetTokenHash, expiresAt: resetPasswordExpiresAt.getTime() });
+        const digits = user.phone.replace(/\D/g, "");
+        const last10 = digits.slice(-10);
+        if (digits) otpMemoryCache.set(digits, otpPayload);
+        if (last10) otpMemoryCache.set(last10, otpPayload);
+    }
+    if (user.email) {
+        otpMemoryCache.set(user.email.trim().toLowerCase(), otpPayload);
     }
 
     // Send WhatsApp OTP via ZoePact template 401355
@@ -718,87 +720,30 @@ export const verifyOtp = async (data: { phone?: string; email?: string; otp: str
     const cleanOtp = String(otp).replace(/\s+/g, "").trim();
     const identifier = phone || email;
 
-    // 1. Check User in database
-    if (identifier) {
-        const user = await findUserByIdentifier(identifier);
+    if (!identifier) {
+        throw new Error("Phone number or email is required to verify OTP");
+    }
 
-        if (user && user.resetPasswordToken && user.resetPasswordExpiresAt) {
-            if (user.resetPasswordExpiresAt.getTime() + 60000 < Date.now()) {
+    const trimmed = identifier.trim().toLowerCase();
+    const digits = trimmed.replace(/\D/g, "");
+    const last10 = digits.slice(-10);
+
+    const keysToTest = [trimmed, digits, last10].filter(Boolean);
+    for (const k of keysToTest) {
+        const cached = otpMemoryCache.get(k);
+        if (cached) {
+            if (cached.expiresAt + 60000 < Date.now()) {
+                otpMemoryCache.delete(k);
                 throw new Error("OTP code has expired. Please request a new OTP.");
             }
-
-            let isValid = false;
-            if (user.resetPasswordToken.startsWith("$2b$") || user.resetPasswordToken.startsWith("$2a$")) {
-                isValid = await bcrypt.compare(cleanOtp, user.resetPasswordToken);
-            } else {
-                isValid = user.resetPasswordToken === cleanOtp;
-            }
-
+            const isValid = await bcrypt.compare(cleanOtp, cached.hash);
             if (isValid) {
                 return {
                     verified: true,
                     message: "OTP verified successfully",
-                    phone: user.phone,
-                    email: user.email,
-                };
-            }
-        }
-    }
-
-    // 2. Check in-memory cache
-    if (identifier) {
-        const trimmed = identifier.trim().toLowerCase();
-        const digits = trimmed.replace(/\D/g, "");
-        const last10 = digits.slice(-10);
-
-        const keysToTest = [trimmed, digits, last10].filter(Boolean);
-        for (const k of keysToTest) {
-            const cached = otpMemoryCache.get(k);
-            if (cached) {
-                if (cached.expiresAt + 60000 < Date.now()) {
-                    otpMemoryCache.delete(k);
-                    throw new Error("OTP code has expired. Please request a new OTP.");
-                }
-                const isValid = await bcrypt.compare(cleanOtp, cached.hash);
-                if (isValid) {
-                    return {
-                        verified: true,
-                        message: "OTP verified successfully",
-                        phone: cached.phone || phone,
-                        email: cached.email || email,
-                    };
-                }
-            }
-        }
-    }
-
-    // 3. Fallback: Search all recent active users with valid reset tokens
-    const recentUsers = await prisma.user.findMany({
-        where: {
-            resetPasswordExpiresAt: {
-                gt: new Date(Date.now() - 60000), // grace period of 1 minute
-            },
-            resetPasswordToken: {
-                not: null,
-            },
-        },
-    });
-
-    for (const u of recentUsers) {
-        if (u.resetPasswordToken) {
-            let isValid = false;
-            if (u.resetPasswordToken.startsWith("$2b$") || u.resetPasswordToken.startsWith("$2a$")) {
-                isValid = await bcrypt.compare(cleanOtp, u.resetPasswordToken);
-            } else {
-                isValid = u.resetPasswordToken === cleanOtp;
-            }
-
-            if (isValid) {
-                return {
-                    verified: true,
-                    message: "OTP verified successfully",
-                    phone: u.phone,
-                    email: u.email,
+                    phone: cached.phone || phone,
+                    email: cached.email || email,
+                    userId: cached.userId,
                 };
             }
         }
@@ -831,65 +776,57 @@ export const resetPassword = async (data: ResetPasswordData) => {
         throw new Error("Password must be at least 6 characters long");
     }
 
-    let matchedUser = null;
+    let matchedUserId: string | null = null;
     const identifier = phone || email;
 
     if (identifier) {
-        const user = await findUserByIdentifier(identifier);
+        const trimmed = identifier.trim().toLowerCase();
+        const digits = trimmed.replace(/\D/g, "");
+        const last10 = digits.slice(-10);
 
-        if (user && user.resetPasswordToken && user.resetPasswordExpiresAt) {
-            if (user.resetPasswordExpiresAt.getTime() + 60000 < Date.now()) {
-                throw new Error("Reset token has expired. Please request a new OTP.");
-            }
-
-            let isTokenValid = false;
-            if (user.resetPasswordToken.startsWith("$2b$") || user.resetPasswordToken.startsWith("$2a$")) {
-                isTokenValid = await bcrypt.compare(cleanToken, user.resetPasswordToken);
-            } else {
-                isTokenValid = user.resetPasswordToken === cleanToken;
-            }
-
-            if (isTokenValid) {
-                matchedUser = user;
-            }
-        }
-    }
-
-    // Fallback: Check all active users if identifier didn't match directly
-    if (!matchedUser) {
-        const activeUsers = await prisma.user.findMany({
-            where: {
-                resetPasswordExpiresAt: {
-                    gt: new Date(Date.now() - 60000),
-                },
-                resetPasswordToken: {
-                    not: null,
-                },
-            },
-        });
-
-        for (const user of activeUsers) {
-            if (user.resetPasswordToken) {
-                let isTokenValid = false;
-                if (user.resetPasswordToken.startsWith("$2b$") || user.resetPasswordToken.startsWith("$2a$")) {
-                    isTokenValid = await bcrypt.compare(cleanToken, user.resetPasswordToken);
-                } else {
-                    isTokenValid = user.resetPasswordToken === cleanToken;
+        const keysToTest = [trimmed, digits, last10].filter(Boolean);
+        for (const k of keysToTest) {
+            const cached = otpMemoryCache.get(k);
+            if (cached) {
+                if (cached.expiresAt + 60000 < Date.now()) {
+                    otpMemoryCache.delete(k);
+                    throw new Error("Reset token has expired. Please request a new OTP.");
                 }
-
-                if (isTokenValid) {
-                    matchedUser = user;
+                const isValid = await bcrypt.compare(cleanToken, cached.hash);
+                if (isValid) {
+                    matchedUserId = cached.userId || null;
                     break;
                 }
             }
         }
     }
 
-    if (!matchedUser) {
+    // Fallback: search all entries in memory cache for token
+    if (!matchedUserId) {
+        for (const [k, cached] of otpMemoryCache.entries()) {
+            if (cached.expiresAt + 60000 >= Date.now()) {
+                const isValid = await bcrypt.compare(cleanToken, cached.hash);
+                if (isValid && cached.userId) {
+                    matchedUserId = cached.userId;
+                    break;
+                }
+            }
+        }
+    }
+
+    // If identifier provided and user found in DB
+    let user = null;
+    if (matchedUserId) {
+        user = await prisma.user.findUnique({ where: { id: matchedUserId } });
+    } else if (identifier) {
+        user = await findUserByIdentifier(identifier);
+    }
+
+    if (!user) {
         throw new Error("Invalid or expired reset token");
     }
 
-    if (!matchedUser.isActive) {
+    if (!user.isActive) {
         throw new Error("Your account is inactive");
     }
 
@@ -897,27 +834,26 @@ export const resetPassword = async (data: ResetPasswordData) => {
 
     await prisma.user.update({
         where: {
-            id: matchedUser.id,
+            id: user.id,
         },
         data: {
             passwordHash: hashedPassword,
-            resetPasswordToken: null,
-            resetPasswordExpiresAt: null,
             refreshTokenHash: null,
         },
     });
 
-    // Clear from memory cache if present
-    if (matchedUser.phone) {
-        otpMemoryCache.delete(matchedUser.phone);
-        const last10 = matchedUser.phone.replace(/\D/g, "").slice(-10);
+    // Clear from memory cache
+    if (user.phone) {
+        otpMemoryCache.delete(user.phone);
+        const last10 = user.phone.replace(/\D/g, "").slice(-10);
         if (last10) otpMemoryCache.delete(last10);
     }
-    if (matchedUser.email) {
-        otpMemoryCache.delete(matchedUser.email.toLowerCase());
+    if (user.email) {
+        otpMemoryCache.delete(user.email.toLowerCase());
     }
+    otpMemoryCache.delete(user.id);
 
     return {
-        message: "Password reset successful. You can now log in with your new password.",
+        message: "Password reset successfully. You can now login with your new password.",
     };
 };
