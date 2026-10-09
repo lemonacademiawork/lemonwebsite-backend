@@ -29,7 +29,7 @@ import settingsRoutes from "./routes/settings.routes";
 const app = express();
 
 // CORS configuration
-const allowedOrigins = (process.env.ALLOWED_ORIGINS || "http://localhost:3000,http://localhost:5173,https://course-website-f.vercel.app")
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || "http://localhost:3000,http://localhost:5173,https://course-website-f.vercel.app,https://lemonacademia.com,https://www.lemonacademia.com,https://api.lemonacademia.com")
   .split(",")
   .map((origin) => origin.trim().replace(/\/$/, ""))
   .filter(Boolean);
