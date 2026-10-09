@@ -12,6 +12,11 @@ import {
     moderateGallerySubmission,
     getAdminSystemSettings,
     upsertSystemSetting,
+    createAdminTrainer,
+    getAdminTrainers,
+    getAdminTrainerById,
+    updateAdminTrainer,
+    deleteAdminTrainer,
 } from "../services/admin.service";
 import {
     UserRole,
@@ -348,6 +353,126 @@ export const upsertSystemSettingController = async (
         return res.status(400).json({
             success: false,
             message: error.message || "Failed to save system setting",
+        });
+    }
+};
+
+/* =========================================================
+   ADMIN DIRECT TRAINER MANAGEMENT CONTROLLERS
+========================================================= */
+
+export const createAdminTrainerController = async (
+    req: Request,
+    res: Response
+) => {
+    try {
+        const adminId = req.user?.userId;
+        const result = await createAdminTrainer(req.body, adminId);
+
+        return res.status(201).json({
+            success: true,
+            message: result.message,
+            data: {
+                user: result.user,
+                trainerProfile: result.trainerProfile,
+                isNewUser: result.isNewUser,
+                credentials: (result as any).credentials,
+            },
+        });
+    } catch (error: any) {
+        return res.status(400).json({
+            success: false,
+            message: error.message || "Failed to create trainer",
+        });
+    }
+};
+
+export const getAdminTrainersController = async (
+    req: Request,
+    res: Response
+) => {
+    try {
+        const { search, isActive, page, limit } = req.query;
+
+        const result = await getAdminTrainers({
+            search: search as string | undefined,
+            isActive: isActive !== undefined ? isActive === "true" : undefined,
+            page: page ? Number(page) : undefined,
+            limit: limit ? Number(limit) : undefined,
+        });
+
+        return res.status(200).json({
+            success: true,
+            message: "Trainers fetched successfully",
+            data: result.trainers,
+            pagination: result.pagination,
+        });
+    } catch (error: any) {
+        return res.status(500).json({
+            success: false,
+            message: error.message || "Failed to fetch trainers",
+        });
+    }
+};
+
+export const getAdminTrainerByIdController = async (
+    req: Request,
+    res: Response
+) => {
+    try {
+        const { id } = req.params;
+        const result = await getAdminTrainerById(id);
+
+        return res.status(200).json({
+            success: true,
+            message: "Trainer fetched successfully",
+            data: result,
+        });
+    } catch (error: any) {
+        return res.status(404).json({
+            success: false,
+            message: error.message || "Trainer not found",
+        });
+    }
+};
+
+export const updateAdminTrainerController = async (
+    req: Request,
+    res: Response
+) => {
+    try {
+        const { id } = req.params;
+        const result = await updateAdminTrainer(id, req.body);
+
+        return res.status(200).json({
+            success: true,
+            message: "Trainer updated successfully",
+            data: result,
+        });
+    } catch (error: any) {
+        return res.status(400).json({
+            success: false,
+            message: error.message || "Failed to update trainer",
+        });
+    }
+};
+
+export const deleteAdminTrainerController = async (
+    req: Request,
+    res: Response
+) => {
+    try {
+        const { id } = req.params;
+        const result = await deleteAdminTrainer(id);
+
+        return res.status(200).json({
+            success: true,
+            message: result.message,
+        });
+    } catch (error: any) {
+        return res.status(400).json({
+            success: false,
+            message: error.message || "Failed to delete trainer",
         });
     }
 };

@@ -40,6 +40,13 @@ Content-Type: application/json
    - [2.4 Admin: Get Application Details by ID](#24-admin-get-application-details-by-id)
    - [2.5 Admin: Review (Approve / Reject) Application](#25-admin-review-approve--reject-application)
    - [2.6 Admin: Delete Application](#26-admin-delete-application)
+3. [👨‍🏫 Admin Trainer Direct Management API (`/admin/trainers`)](#3-admin-trainer-direct-management-api-apiv1admintrainers)
+   - [3.1 Admin: Directly Add / Create Trainer](#31-admin-directly-add--create-trainer)
+   - [3.2 Admin: List All Platform Trainers](#32-admin-list-all-platform-trainers)
+   - [3.3 Admin: Get Trainer Details & Course Metrics](#33-admin-get-trainer-details--course-metrics)
+   - [3.4 Admin: Update Trainer Profile & Credentials](#34-admin-update-trainer-profile--credentials)
+   - [3.5 Admin: Revoke Trainer Role / Delete Profile](#35-admin-revoke-trainer-role--delete-profile)
+   - [3.6 Public: List Active Trainers](#36-public-list-active-trainers-catalog--dropdowns)
 
 ---
 
@@ -551,3 +558,102 @@ Admin approves or rejects the application.
   "message": "Trainer application request deleted successfully"
 }
 ```
+
+---
+
+# 3. 👨‍🏫 Admin Trainer Direct Management API (`/api/v1/admin/trainers`)
+
+Admins can directly create and manage instructors without requiring them to submit an application.
+
+### 3.1 Admin: Directly Add / Create Trainer
+Creates a new trainer account and provisions their `TrainerProfile`. If a user with the provided phone or email already exists, their account is automatically elevated to `TRAINER` and their profile is populated. Any pending application with matching contact info is automatically marked as `APPROVED`. If no password is provided, a secure temporary password is auto-generated and returned.
+
+- **Method**: `POST`
+- **Path**: `/api/v1/admin/trainers` *(Alias: `/api/v1/trainer-requests/admin-create`)*
+- **Auth**: Required (`ADMIN` role)
+
+#### Request Body
+```json
+{
+  "name": "Priya Sharma",
+  "email": "priya@lemonacademy.in",
+  "phone": "9876543210",
+  "password": "Trainer@123456",
+  "expertise": "Modern Crochet & Amigurumi",
+  "designation": "Lead Fiber Artist & Instructor",
+  "bio": "Certified fiber artist with 8+ years of experience in yarn crafts.",
+  "avatarUrl": "https://images.unsplash.com/photo-1544005313-94ddf0286df2"
+}
+```
+
+#### Response (`201 Created`)
+```json
+{
+  "success": true,
+  "message": "Trainer account and profile created successfully by admin",
+  "data": {
+    "user": {
+      "id": "u1f7a08b-9e23-4567-8901-abcdef123456",
+      "name": "Priya Sharma",
+      "email": "priya@lemonacademy.in",
+      "phone": "9876543210",
+      "role": "TRAINER",
+      "isActive": true,
+      "createdAt": "2026-03-01T12:00:00.000Z"
+    },
+    "trainerProfile": {
+      "id": "tp1f7a08b-9e23-4567-8901-abcdef123456",
+      "name": "Priya Sharma",
+      "expertise": "Modern Crochet & Amigurumi",
+      "designation": "Lead Fiber Artist & Instructor"
+    },
+    "isNewUser": true,
+    "credentials": {
+      "loginIdentifier": "priya@lemonacademy.in",
+      "password": "Trainer@123456",
+      "isPasswordGenerated": false
+    }
+  }
+}
+```
+
+---
+
+### 3.2 Admin: List All Platform Trainers
+Retrieves all registered platform trainers with course counts and total student metrics.
+
+- **Method**: `GET`
+- **Path**: `/api/v1/admin/trainers`
+- **Auth**: Required (`ADMIN` role)
+- **Query Params**: `search`, `isActive`, `page`, `limit`
+
+---
+
+### 3.3 Admin: Get Trainer Details & Course Metrics
+- **Method**: `GET`
+- **Path**: `/api/v1/admin/trainers/:id`
+- **Auth**: Required (`ADMIN` role)
+- **Param**: `id` (User ID or TrainerProfile ID)
+
+---
+
+### 3.4 Admin: Update Trainer Profile & Credentials
+- **Method**: `PATCH`
+- **Path**: `/api/v1/admin/trainers/:id`
+- **Auth**: Required (`ADMIN` role)
+
+---
+
+### 3.5 Admin: Revoke Trainer Role / Delete Profile
+- **Method**: `DELETE`
+- **Path**: `/api/v1/admin/trainers/:id`
+- **Auth**: Required (`ADMIN` role)
+
+---
+
+### 3.6 Public: List Active Trainers (Catalog / Dropdowns)
+- **Method**: `GET`
+- **Path**: `/api/v1/trainers`
+- **Auth**: Public
+- **Query Params**: `search`, `page`, `limit`
+

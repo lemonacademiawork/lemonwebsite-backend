@@ -1,4 +1,5 @@
 import { prisma } from "../config/database";
+import { UserRole } from "@prisma/client";
 
 export const getMyTrainerProfile = async (userId: string) => {
     const trainer = await prisma.trainerProfile.findUnique({
@@ -319,4 +320,78 @@ export const updateTrainerGalleryFeedback = async (
     });
 
     return updatedSubmission;
+};
+
+export const getAllPublicTrainers = async (query: {
+    search?: string;
+    page?: number;
+    limit?: number;
+}) => {
+    const page = Math.max(1, Number(query.page) || 1);
+    const limit = Math.max(1, Math.min(100, Number(query.limit) || 20));
+    const skip = (page - 1) * limit;
+
+    const where: any = {
+        role: UserRole.TRAINER,
+        isActive: true,
+    };
+
+    if (query.search) {
+        const searchPattern = query.search.trim();
+        where.OR = [
+            { name: { contains: searchPattern, mode: "insensitive" } },
+            {
+                trainerProfile: {
+                    OR: [
+                        { name: { contains: searchPattern, mode: "insensitive" } },
+                        { expertise: { contains: searchPattern, mode: "insensitive" } },
+                        { designation: { contains: searchPattern, mode: "insensitive" } },
+                    ],
+                },
+            },
+        ];
+    }
+
+    const [total, trainers] = await Promise.all([
+        prisma.user.count({ where }),
+        prisma.user.findMany({
+            where,
+            skip,
+            take: limit,
+            orderBy: { createdAt: "desc" },
+            select: {
+                id: true,
+                name: true,
+                trainerProfile: true,
+                _count: {
+                    select: {
+                        coursesTaught: {
+                            where: { isPublished: true },
+                        },
+                    },
+                },
+            },
+        }),
+    ]);
+
+    const formatted = trainers.map((t) => ({
+        id: t.id,
+        trainerProfileId: t.trainerProfile?.id,
+        name: t.trainerProfile?.name || t.name,
+        avatarUrl: t.trainerProfile?.avatarUrl || null,
+        bio: t.trainerProfile?.bio || null,
+        expertise: t.trainerProfile?.expertise || null,
+        designation: t.trainerProfile?.designation || null,
+        publishedCoursesCount: t._count.coursesTaught,
+    }));
+
+    return {
+        trainers: formatted,
+        pagination: {
+            total,
+            page,
+            limit,
+            totalPages: Math.ceil(total / limit),
+        },
+    };
 };

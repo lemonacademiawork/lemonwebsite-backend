@@ -9,9 +9,38 @@ import {
     getMyTrainerReviewsController,
     getMyTrainerGallerySubmissionsController,
     updateTrainerGalleryFeedbackController,
+    getAllPublicTrainersController,
 } from "../controllers/trainer.controller";
 
 const router = Router();
+
+/**
+ * @swagger
+ * /api/v1/trainers:
+ *   get:
+ *     summary: List all active trainers publicly
+ *     tags: [Trainers]
+ *     parameters:
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search by name, expertise, or designation
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *     responses:
+ *       200:
+ *         description: Active trainers fetched successfully
+ */
+router.get("/", getAllPublicTrainersController);
 
 /**
  * @swagger

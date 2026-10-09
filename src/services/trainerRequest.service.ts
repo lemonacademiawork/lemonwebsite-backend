@@ -1,4 +1,5 @@
 import { prisma } from "../config/database";
+import bcrypt from "bcrypt";
 import { TrainerRequestStatus, UserRole } from "@prisma/client";
 
 export interface SubmitTrainerRequestInput {
@@ -262,7 +263,7 @@ export const updateTrainerRequestStatus = async (
             // Upgrade user role to TRAINER
             await prisma.user.update({
                 where: { id: targetUser.id },
-                data: { role: UserRole.TRAINER },
+                data: { role: UserRole.TRAINER, isActive: true },
             });
 
             // Ensure TrainerProfile exists
@@ -285,11 +286,46 @@ export const updateTrainerRequestStatus = async (
                 await prisma.trainerProfile.update({
                     where: { userId: targetUser.id },
                     data: {
+                        ...(request.name ? { name: request.name } : {}),
+                        ...(request.phone ? { phone: request.phone.trim() } : {}),
                         ...(request.expertise ? { expertise: request.expertise } : {}),
                         ...(request.bio ? { bio: request.bio } : {}),
                     },
                 });
             }
+        } else {
+            // Target user does not exist yet: create user account and trainer profile automatically
+            const rawPhone = request.phone ? request.phone.trim() : null;
+            const rawEmail = request.email ? request.email.trim().toLowerCase() : null;
+            const tempPassword = `Trainer@${Math.floor(100000 + Math.random() * 900000)}`;
+            const passwordHash = await bcrypt.hash(tempPassword, 10);
+
+            const newUser = await prisma.user.create({
+                data: {
+                    name: request.name || "Trainer",
+                    phone: rawPhone,
+                    email: rawEmail,
+                    passwordHash,
+                    role: UserRole.TRAINER,
+                    isActive: true,
+                    studentProfile: {
+                        create: {
+                            name: request.name || "Student",
+                            phone: rawPhone,
+                        },
+                    },
+                    trainerProfile: {
+                        create: {
+                            name: request.name || "Trainer",
+                            phone: rawPhone,
+                            expertise: request.expertise,
+                            bio: request.bio || `Instructor specializing in ${request.expertise}`,
+                            designation: "Instructor at Lemon Academy",
+                        },
+                    },
+                },
+            });
+            effectiveUserId = newUser.id;
         }
     }
 

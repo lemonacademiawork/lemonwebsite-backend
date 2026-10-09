@@ -7,6 +7,7 @@ import {
     updateTrainerRequestStatusController,
     deleteTrainerRequestController,
 } from "../controllers/trainerRequest.controller";
+import { createAdminTrainerController } from "../controllers/admin.controller";
 import { authenticate } from "../middleware/auth.middleware";
 import { requireRoles } from "../middleware/role.middleware";
 
@@ -138,6 +139,60 @@ router.get(
     authenticate,
     requireRoles("ADMIN"),
     getAllTrainerRequestsController
+);
+
+/**
+ * @swagger
+ * /api/v1/trainer-requests/admin-create:
+ *   post:
+ *     summary: Directly create a trainer without an existing application (Admin only)
+ *     tags:
+ *       - Trainer Applications
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 example: Priya Sharma
+ *               email:
+ *                 type: string
+ *                 example: priya@lemonacademy.in
+ *               phone:
+ *                 type: string
+ *                 example: "9876543210"
+ *               password:
+ *                 type: string
+ *                 example: "Trainer@123456"
+ *               expertise:
+ *                 type: string
+ *                 example: "Modern Crochet & Amigurumi"
+ *               designation:
+ *                 type: string
+ *                 example: "Lead Fiber Artist & Instructor"
+ *               bio:
+ *                 type: string
+ *                 example: "Over 8 years of teaching craft workshops."
+ *               avatarUrl:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Trainer created successfully
+ *       400:
+ *         description: Validation error
+ */
+router.post(
+    "/admin-create",
+    authenticate,
+    requireRoles("ADMIN"),
+    createAdminTrainerController
 );
 
 /**

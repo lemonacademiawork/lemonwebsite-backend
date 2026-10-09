@@ -14,6 +14,11 @@ import {
     moderateGallerySubmissionController,
     getAdminSystemSettingsController,
     upsertSystemSettingController,
+    createAdminTrainerController,
+    getAdminTrainersController,
+    getAdminTrainerByIdController,
+    updateAdminTrainerController,
+    deleteAdminTrainerController,
 } from "../controllers/admin.controller";
 
 const router = Router();
@@ -410,5 +415,197 @@ router.get("/settings", getAdminSystemSettingsController);
  *         description: System setting saved successfully
  */
 router.put("/settings", upsertSystemSettingController);
+
+/**
+ * @swagger
+ * /api/v1/admin/trainers:
+ *   post:
+ *     summary: Directly add/create a trainer (Admin only)
+ *     description: Creates a new trainer account and TrainerProfile directly, or upgrades an existing user to Trainer. Generates login credentials if no password is provided.
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 example: Priya Sharma
+ *               email:
+ *                 type: string
+ *                 example: priya@lemonacademy.in
+ *               phone:
+ *                 type: string
+ *                 example: "9876543210"
+ *               password:
+ *                 type: string
+ *                 example: "Trainer@123456"
+ *                 description: Optional. A secure temporary password is auto-generated if omitted.
+ *               expertise:
+ *                 type: string
+ *                 example: "Modern Crochet & Amigurumi"
+ *               designation:
+ *                 type: string
+ *                 example: "Lead Fiber Artist & Instructor"
+ *               bio:
+ *                 type: string
+ *                 example: "Over 8 years of teaching crochet, macrame, and fiber crafts."
+ *               avatarUrl:
+ *                 type: string
+ *                 example: "https://images.unsplash.com/photo-1544005313-94ddf0286df2"
+ *     responses:
+ *       201:
+ *         description: Trainer created or upgraded successfully
+ *       400:
+ *         description: Missing fields or invalid request
+ *       401:
+ *         description: Authentication required
+ *       403:
+ *         description: Admin privileges required
+ */
+router.post("/trainers", createAdminTrainerController);
+
+/**
+ * @swagger
+ * /api/v1/admin/trainers:
+ *   get:
+ *     summary: List all trainers with course counts and metrics (Admin only)
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search by name, email, phone, or expertise
+ *       - in: query
+ *         name: isActive
+ *         schema:
+ *           type: boolean
+ *         description: Filter by active status
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *     responses:
+ *       200:
+ *         description: Trainers list fetched successfully
+ *       401:
+ *         description: Authentication required
+ *       403:
+ *         description: Admin privileges required
+ */
+router.get("/trainers", getAdminTrainersController);
+
+/**
+ * @swagger
+ * /api/v1/admin/trainers/{id}:
+ *   get:
+ *     summary: Get trainer details, profile, and taught courses (Admin only)
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: User ID or TrainerProfile ID
+ *     responses:
+ *       200:
+ *         description: Trainer details fetched successfully
+ *       404:
+ *         description: Trainer not found
+ */
+router.get("/trainers/:id", getAdminTrainerByIdController);
+
+/**
+ * @swagger
+ * /api/v1/admin/trainers/{id}:
+ *   patch:
+ *     summary: Update trainer profile or account (Admin only)
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: User ID or TrainerProfile ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *               phone:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *                 description: Reset trainer password if provided (min 6 chars)
+ *               expertise:
+ *                 type: string
+ *               designation:
+ *                 type: string
+ *               bio:
+ *                 type: string
+ *               avatarUrl:
+ *                 type: string
+ *               isActive:
+ *                 type: boolean
+ *     responses:
+ *       200:
+ *         description: Trainer updated successfully
+ *       400:
+ *         description: Validation error
+ *       404:
+ *         description: Trainer not found
+ */
+router.patch("/trainers/:id", updateAdminTrainerController);
+
+/**
+ * @swagger
+ * /api/v1/admin/trainers/{id}:
+ *   delete:
+ *     summary: Remove trainer role or delete profile (Admin only)
+ *     description: If the trainer has active courses, account is safely deactivated and role changed to STUDENT to preserve enrollments.
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: User ID or TrainerProfile ID
+ *     responses:
+ *       200:
+ *         description: Trainer role revoked successfully
+ *       404:
+ *         description: Trainer not found
+ */
+router.delete("/trainers/:id", deleteAdminTrainerController);
 
 export default router;

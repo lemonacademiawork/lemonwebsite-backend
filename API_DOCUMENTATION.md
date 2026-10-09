@@ -979,10 +979,16 @@ Requires `ADMIN` role.
 - **Path**: `/api/v1/trainer-requests/me`
 - **Auth**: Required (`Bearer <token>`)
 
-### 22.3 Admin Trainer Application Management
+### 22.3 Admin Trainer Application & Management
+- `POST /api/v1/admin/trainers` — Directly create/add a trainer on own (creates account & profile or upgrades user, generates credentials if needed)
+- `POST /api/v1/trainer-requests/admin-create` — Alias to directly add a trainer without requiring an application
+- `GET /api/v1/admin/trainers` — List all platform trainers with course counts, total students, and reviews (Admin)
+- `GET /api/v1/admin/trainers/:id` — Get full trainer details, profile, and taught courses (Admin)
+- `PATCH /api/v1/admin/trainers/:id` — Update trainer profile, expertise, or reset credentials (Admin)
+- `DELETE /api/v1/admin/trainers/:id` — Revoke trainer role or remove profile (Admin)
 - `GET /api/v1/trainer-requests` — List all applications (Admin, filter by status: `PENDING`, `APPROVED`, `REJECTED`)
 - `GET /api/v1/trainer-requests/:id` — Get full application details (Admin)
-- `PATCH /api/v1/trainer-requests/:id/status` — Review application (`status: APPROVED | REJECTED`, `adminNotes`). *Note: Approving automatically elevates user role to `TRAINER` and initializes `TrainerProfile`.*
+- `PATCH /api/v1/trainer-requests/:id/status` — Review application (`status: APPROVED | REJECTED`, `adminNotes`). *Note: Approving automatically elevates user role to `TRAINER` and provisions `TrainerProfile`.*
 - `DELETE /api/v1/trainer-requests/:id` — Delete application (Admin)
 
 ---

@@ -1,10 +1,12 @@
 import { prisma } from "../config/database";
+import bcrypt from "bcrypt";
 import {
     UserRole,
     EnrollmentStatus,
     EnrollmentSource,
     GalleryStatus,
     PaymentStatus,
+    TrainerRequestStatus,
 } from "@prisma/client";
 import { extractNameFromEmail } from "./auth.service";
 
@@ -678,4 +680,567 @@ export const upsertSystemSetting = async (data: {
     });
 
     return setting;
+};
+
+/* =========================================================
+   ADMIN TRAINER DIRECT MANAGEMENT
+========================================================= */
+
+export interface CreateAdminTrainerInput {
+    name: string;
+    email?: string;
+    phone?: string;
+    password?: string;
+    expertise?: string;
+    designation?: string;
+    bio?: string;
+    avatarUrl?: string;
+    experienceYears?: number;
+}
+
+export interface UpdateAdminTrainerInput {
+    name?: string;
+    email?: string;
+    phone?: string;
+    password?: string;
+    bio?: string;
+    expertise?: string;
+    designation?: string;
+    avatarUrl?: string;
+    isActive?: boolean;
+}
+
+export const createAdminTrainer = async (
+    data: CreateAdminTrainerInput,
+    adminId?: string
+) => {
+    const {
+        name,
+        email,
+        phone,
+        password,
+        expertise,
+        designation = "Instructor at Lemon Academy",
+        bio,
+        avatarUrl,
+        experienceYears,
+    } = data;
+
+    if (!name || !name.trim()) {
+        throw new Error("Trainer name is required");
+    }
+
+    const trimmedEmail = email && email.trim() ? email.trim().toLowerCase() : null;
+    const trimmedPhone = phone && phone.trim() ? phone.trim() : null;
+    const trimmedName = name.trim();
+
+    if (!trimmedEmail && !trimmedPhone) {
+        throw new Error("At least one contact method (email or phone) is required to create a trainer");
+    }
+
+    // Check if user already exists
+    const existingUser = await prisma.user.findFirst({
+        where: {
+            OR: [
+                ...(trimmedPhone ? [{ phone: trimmedPhone }] : []),
+                ...(trimmedEmail ? [{ email: trimmedEmail }] : []),
+            ],
+        },
+        include: {
+            trainerProfile: true,
+            studentProfile: true,
+        },
+    });
+
+    let plainPassword = password;
+    let isPasswordGenerated = false;
+
+    if (existingUser) {
+        // Prepare user updates
+        const updateUserData: any = {
+            isActive: true,
+        };
+
+        // If not already admin or trainer, upgrade to TRAINER
+        if (existingUser.role !== UserRole.ADMIN) {
+            updateUserData.role = UserRole.TRAINER;
+        }
+
+        if (password) {
+            if (password.length < 6) {
+                throw new Error("Password must be at least 6 characters long");
+            }
+            updateUserData.passwordHash = await bcrypt.hash(password, 10);
+        }
+
+        if (trimmedName && (!existingUser.name || existingUser.name.toLowerCase() === "student")) {
+            updateUserData.name = trimmedName;
+        }
+
+        const updatedUser = await prisma.user.update({
+            where: { id: existingUser.id },
+            data: updateUserData,
+        });
+
+        // Ensure TrainerProfile exists or update it
+        let trainerProfile;
+        if (existingUser.trainerProfile) {
+            trainerProfile = await prisma.trainerProfile.update({
+                where: { userId: existingUser.id },
+                data: {
+                    name: trimmedName || existingUser.trainerProfile.name,
+                    phone: trimmedPhone || existingUser.trainerProfile.phone,
+                    ...(avatarUrl !== undefined ? { avatarUrl } : {}),
+                    ...(bio !== undefined ? { bio } : {}),
+                    ...(expertise !== undefined ? { expertise } : {}),
+                    ...(designation !== undefined ? { designation } : {}),
+                },
+            });
+        } else {
+            trainerProfile = await prisma.trainerProfile.create({
+                data: {
+                    userId: existingUser.id,
+                    name: trimmedName,
+                    phone: trimmedPhone,
+                    avatarUrl: avatarUrl || null,
+                    bio: bio || (expertise ? `Instructor specializing in ${expertise}` : "Instructor at Lemon Academy"),
+                    expertise: expertise || "Artisan & Craft Instructor",
+                    designation: designation || "Instructor at Lemon Academy",
+                },
+            });
+        }
+
+        // Also check if any pending TrainerRequest exists for this user / email / phone
+        await prisma.trainerRequest.updateMany({
+            where: {
+                status: TrainerRequestStatus.PENDING,
+                OR: [
+                    { userId: existingUser.id },
+                    ...(trimmedEmail ? [{ email: trimmedEmail }] : []),
+                    ...(trimmedPhone ? [{ phone: trimmedPhone }] : []),
+                ],
+            },
+            data: {
+                status: TrainerRequestStatus.APPROVED,
+                reviewedBy: adminId || null,
+                reviewedAt: new Date(),
+                adminNotes: "Approved and provisioned directly by Admin",
+                userId: existingUser.id,
+            },
+        });
+
+        return {
+            isNewUser: false,
+            message: "Existing user upgraded to Trainer and profile updated successfully",
+            user: {
+                id: updatedUser.id,
+                name: updatedUser.name,
+                email: updatedUser.email,
+                phone: updatedUser.phone,
+                role: updatedUser.role,
+                isActive: updatedUser.isActive,
+                createdAt: updatedUser.createdAt,
+            },
+            trainerProfile,
+        };
+    } else {
+        // Create new user as TRAINER
+        if (!plainPassword) {
+            const randomCode = Math.floor(100000 + Math.random() * 900000);
+            plainPassword = `Trainer@${randomCode}`;
+            isPasswordGenerated = true;
+        }
+
+        if (plainPassword.length < 6) {
+            throw new Error("Password must be at least 6 characters long");
+        }
+
+        const passwordHash = await bcrypt.hash(plainPassword, 10);
+
+        const newUser = await prisma.user.create({
+            data: {
+                name: trimmedName,
+                email: trimmedEmail,
+                phone: trimmedPhone,
+                passwordHash,
+                role: UserRole.TRAINER,
+                isActive: true,
+                studentProfile: {
+                    create: {
+                        name: trimmedName,
+                        phone: trimmedPhone,
+                    },
+                },
+                trainerProfile: {
+                    create: {
+                        name: trimmedName,
+                        phone: trimmedPhone,
+                        avatarUrl: avatarUrl || null,
+                        bio: bio || (expertise ? `Instructor specializing in ${expertise}` : "Instructor at Lemon Academy"),
+                        expertise: expertise || "Artisan & Craft Instructor",
+                        designation: designation || "Instructor at Lemon Academy",
+                    },
+                },
+            },
+            include: {
+                trainerProfile: true,
+            },
+        });
+
+        // Link and approve any existing pending TrainerRequest
+        await prisma.trainerRequest.updateMany({
+            where: {
+                status: TrainerRequestStatus.PENDING,
+                OR: [
+                    ...(trimmedEmail ? [{ email: trimmedEmail }] : []),
+                    ...(trimmedPhone ? [{ phone: trimmedPhone }] : []),
+                ],
+            },
+            data: {
+                status: TrainerRequestStatus.APPROVED,
+                reviewedBy: adminId || null,
+                reviewedAt: new Date(),
+                adminNotes: "Approved and created directly by Admin",
+                userId: newUser.id,
+            },
+        });
+
+        return {
+            isNewUser: true,
+            message: "Trainer account and profile created successfully by admin",
+            user: {
+                id: newUser.id,
+                name: newUser.name,
+                email: newUser.email,
+                phone: newUser.phone,
+                role: newUser.role,
+                isActive: newUser.isActive,
+                createdAt: newUser.createdAt,
+            },
+            trainerProfile: newUser.trainerProfile,
+            credentials: {
+                loginIdentifier: trimmedEmail || trimmedPhone,
+                password: plainPassword,
+                isPasswordGenerated,
+            },
+        };
+    }
+};
+
+export const getAdminTrainers = async (query: {
+    search?: string;
+    isActive?: boolean;
+    page?: number;
+    limit?: number;
+}) => {
+    const page = Math.max(1, Number(query.page) || 1);
+    const limit = Math.max(1, Math.min(100, Number(query.limit) || 20));
+    const skip = (page - 1) * limit;
+
+    const where: any = {
+        role: UserRole.TRAINER,
+    };
+
+    if (query.isActive !== undefined) {
+        where.isActive = query.isActive;
+    }
+
+    if (query.search) {
+        const searchPattern = query.search.trim();
+        where.OR = [
+            { name: { contains: searchPattern, mode: "insensitive" } },
+            { email: { contains: searchPattern, mode: "insensitive" } },
+            { phone: { contains: searchPattern, mode: "insensitive" } },
+            {
+                trainerProfile: {
+                    OR: [
+                        { name: { contains: searchPattern, mode: "insensitive" } },
+                        { expertise: { contains: searchPattern, mode: "insensitive" } },
+                        { designation: { contains: searchPattern, mode: "insensitive" } },
+                    ],
+                },
+            },
+        ];
+    }
+
+    const [total, trainers] = await Promise.all([
+        prisma.user.count({ where }),
+        prisma.user.findMany({
+            where,
+            skip,
+            take: limit,
+            orderBy: { createdAt: "desc" },
+            include: {
+                trainerProfile: true,
+                _count: {
+                    select: {
+                        coursesTaught: true,
+                    },
+                },
+                coursesTaught: {
+                    select: {
+                        id: true,
+                        title: true,
+                        slug: true,
+                        isPublished: true,
+                        price: true,
+                        _count: {
+                            select: {
+                                enrollments: true,
+                                reviews: true,
+                            },
+                        },
+                    },
+                },
+            },
+        }),
+    ]);
+
+    const formattedTrainers = trainers.map((t) => {
+        const totalEnrollments = t.coursesTaught.reduce(
+            (acc, c) => acc + (c._count?.enrollments || 0),
+            0
+        );
+        const totalReviews = t.coursesTaught.reduce(
+            (acc, c) => acc + (c._count?.reviews || 0),
+            0
+        );
+
+        return {
+            id: t.id,
+            name: t.trainerProfile?.name || t.name,
+            email: t.email,
+            phone: t.trainerProfile?.phone || t.phone,
+            role: t.role,
+            isActive: t.isActive,
+            createdAt: t.createdAt,
+            updatedAt: t.updatedAt,
+            profile: t.trainerProfile,
+            coursesCount: t._count.coursesTaught,
+            totalStudents: totalEnrollments,
+            totalReviews,
+            courses: t.coursesTaught,
+        };
+    });
+
+    return {
+        trainers: formattedTrainers,
+        pagination: {
+            total,
+            page,
+            limit,
+            totalPages: Math.ceil(total / limit),
+        },
+    };
+};
+
+export const getAdminTrainerById = async (id: string) => {
+    const user = await prisma.user.findFirst({
+        where: {
+            OR: [
+                { id },
+                { trainerProfile: { id } },
+            ],
+        },
+        include: {
+            trainerProfile: true,
+            coursesTaught: {
+                include: {
+                    category: { select: { id: true, name: true, slug: true } },
+                    _count: { select: { enrollments: true, reviews: true, modules: true } },
+                },
+                orderBy: { createdAt: "desc" },
+            },
+        },
+    });
+
+    if (!user) {
+        throw new Error("Trainer not found");
+    }
+
+    const totalStudents = user.coursesTaught.reduce(
+        (acc, c) => acc + (c._count?.enrollments || 0),
+        0
+    );
+    const totalReviews = user.coursesTaught.reduce(
+        (acc, c) => acc + (c._count?.reviews || 0),
+        0
+    );
+
+    return {
+        user: {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            phone: user.phone,
+            role: user.role,
+            isActive: user.isActive,
+            createdAt: user.createdAt,
+            updatedAt: user.updatedAt,
+        },
+        profile: user.trainerProfile,
+        coursesCount: user.coursesTaught.length,
+        totalStudents,
+        totalReviews,
+        courses: user.coursesTaught,
+    };
+};
+
+export const updateAdminTrainer = async (
+    id: string,
+    data: UpdateAdminTrainerInput
+) => {
+    const user = await prisma.user.findFirst({
+        where: {
+            OR: [
+                { id },
+                { trainerProfile: { id } },
+            ],
+        },
+        include: { trainerProfile: true },
+    });
+
+    if (!user) {
+        throw new Error("Trainer not found");
+    }
+
+    const userUpdate: any = {};
+    if (data.name !== undefined) userUpdate.name = data.name;
+    if (data.isActive !== undefined) userUpdate.isActive = data.isActive;
+
+    if (data.email) {
+        const trimmedEmail = data.email.trim().toLowerCase();
+        const existingEmail = await prisma.user.findFirst({
+            where: { email: trimmedEmail, NOT: { id: user.id } },
+        });
+        if (existingEmail) {
+            throw new Error("Email is already used by another user");
+        }
+        userUpdate.email = trimmedEmail;
+    }
+
+    if (data.phone) {
+        const trimmedPhone = data.phone.trim();
+        const existingPhone = await prisma.user.findFirst({
+            where: { phone: trimmedPhone, NOT: { id: user.id } },
+        });
+        if (existingPhone) {
+            throw new Error("Phone number is already used by another user");
+        }
+        userUpdate.phone = trimmedPhone;
+    }
+
+    if (data.password) {
+        if (data.password.length < 6) {
+            throw new Error("Password must be at least 6 characters long");
+        }
+        userUpdate.passwordHash = await bcrypt.hash(data.password, 10);
+    }
+
+    if (Object.keys(userUpdate).length > 0) {
+        await prisma.user.update({
+            where: { id: user.id },
+            data: userUpdate,
+        });
+    }
+
+    let updatedProfile;
+    if (user.trainerProfile) {
+        updatedProfile = await prisma.trainerProfile.update({
+            where: { userId: user.id },
+            data: {
+                ...(data.name !== undefined ? { name: data.name } : {}),
+                ...(data.phone !== undefined ? { phone: data.phone.trim() } : {}),
+                ...(data.avatarUrl !== undefined ? { avatarUrl: data.avatarUrl } : {}),
+                ...(data.bio !== undefined ? { bio: data.bio } : {}),
+                ...(data.expertise !== undefined ? { expertise: data.expertise } : {}),
+                ...(data.designation !== undefined ? { designation: data.designation } : {}),
+            },
+        });
+    } else {
+        updatedProfile = await prisma.trainerProfile.create({
+            data: {
+                userId: user.id,
+                name: data.name || user.name || "Trainer",
+                phone: data.phone ? data.phone.trim() : user.phone,
+                avatarUrl: data.avatarUrl || null,
+                bio: data.bio || null,
+                expertise: data.expertise || null,
+                designation: data.designation || "Instructor at Lemon Academy",
+            },
+        });
+    }
+
+    return {
+        user: await prisma.user.findUnique({
+            where: { id: user.id },
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                phone: true,
+                role: true,
+                isActive: true,
+                updatedAt: true,
+            },
+        }),
+        trainerProfile: updatedProfile,
+    };
+};
+
+export const deleteAdminTrainer = async (id: string) => {
+    const user = await prisma.user.findFirst({
+        where: {
+            OR: [
+                { id },
+                { trainerProfile: { id } },
+            ],
+        },
+        include: {
+            trainerProfile: true,
+            _count: {
+                select: {
+                    coursesTaught: true,
+                },
+            },
+        },
+    });
+
+    if (!user) {
+        throw new Error("Trainer not found");
+    }
+
+    // If trainer has courses taught, demote to STUDENT role and deactivate to preserve course records
+    if (user._count.coursesTaught > 0) {
+        await prisma.user.update({
+            where: { id: user.id },
+            data: {
+                role: UserRole.STUDENT,
+                isActive: false,
+            },
+        });
+        return {
+            success: true,
+            message: `Trainer has ${user._count.coursesTaught} course(s). Role changed to STUDENT and account deactivated to preserve course records and student enrollments.`,
+        };
+    }
+
+    // If no courses taught, delete TrainerProfile and demote role to STUDENT
+    if (user.trainerProfile) {
+        await prisma.trainerProfile.delete({
+            where: { userId: user.id },
+        });
+    }
+
+    await prisma.user.update({
+        where: { id: user.id },
+        data: {
+            role: UserRole.STUDENT,
+        },
+    });
+
+    return {
+        success: true,
+        message: "Trainer role revoked and trainer profile removed successfully",
+    };
 };

@@ -9,6 +9,7 @@ import {
     getMyTrainerReviews,
     getMyTrainerGallerySubmissions,
     updateTrainerGalleryFeedback,
+    getAllPublicTrainers,
 } from "../services/trainer.service";
 
 export const getMyTrainerProfileController = async (
@@ -240,6 +241,33 @@ export const updateTrainerGalleryFeedbackController = async (
         return res.status(400).json({
             success: false,
             message: error.message,
+        });
+    }
+};
+
+export const getAllPublicTrainersController = async (
+    req: Request,
+    res: Response
+) => {
+    try {
+        const { search, page, limit } = req.query;
+
+        const result = await getAllPublicTrainers({
+            search: search as string | undefined,
+            page: page ? Number(page) : undefined,
+            limit: limit ? Number(limit) : undefined,
+        });
+
+        return res.status(200).json({
+            success: true,
+            message: "Trainers fetched successfully",
+            data: result.trainers,
+            pagination: result.pagination,
+        });
+    } catch (error: any) {
+        return res.status(500).json({
+            success: false,
+            message: error.message || "Failed to fetch trainers",
         });
     }
 };
