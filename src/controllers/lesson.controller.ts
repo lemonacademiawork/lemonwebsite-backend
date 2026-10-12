@@ -1,10 +1,10 @@
 import { Request, Response } from "express";
-import { createLesson, getLessons, updateLesson, deleteLesson, toggleLessonPublish } from "../services/lesson.service";
+import { createLesson as createLessonService, getLessons, updateLesson, deleteLesson, toggleLessonPublish } from "../services/lesson.service";
 
 export const createLessonController = async (
     req: Request,
     res: Response
-) => {
+): Promise<Response> => {
     try {
         if (!req.user) {
             return res.status(401).json({
@@ -15,97 +15,81 @@ export const createLessonController = async (
 
         const { moduleId } = req.params;
 
-        if (!moduleId) {
+        // 1. Validate required inputs immediately
+        if (!moduleId || !moduleId.trim()) {
             return res.status(400).json({
                 success: false,
-                message: "Module ID is required",
+                message: "Module ID is required in URL parameter",
             });
         }
 
         const {
             title,
-            description,
-            videoProvider,
-            videoId,
-            videoUrl,
-            thumbnailUrl,
-            durationSeconds,
-            fileSizeBytes,
+            description = "",
+            videoProvider = "CLOUDINARY",
+            videoId = "",
+            videoUrl = "",
+            thumbnailUrl = "",
+            durationSeconds = 0,
+            fileSizeBytes = 0,
             orderIndex,
-            isPreview,
+            isPreview = false,
+            isPublished = true,
         } = req.body;
 
-        if (!title) {
+        if (!title || !title.trim()) {
             return res.status(400).json({
                 success: false,
                 message: "Lesson title is required",
             });
         }
 
-        if (!videoId) {
-            return res.status(400).json({
-                success: false,
-                message: "Video ID is required",
-            });
-        }
-
-        if (!videoUrl) {
-            return res.status(400).json({
-                success: false,
-                message: "Video URL is required",
-            });
-        }
-
-        const lesson = await createLesson(
-            moduleId,
+        // 2. Create the lesson via service (handles parent module existence, role checks, and resilient orderIndex)
+        const lesson = await createLessonService(
+            moduleId.trim(),
             req.user.userId,
             {
-                title,
-                description,
-                videoProvider,
-                videoId,
-                videoUrl,
-                thumbnailUrl,
-
-                durationSeconds:
-                    durationSeconds !== undefined
-                        ? Number(durationSeconds)
-                        : undefined,
-
-                fileSizeBytes:
-                    fileSizeBytes !== undefined
-                        ? BigInt(fileSizeBytes)
-                        : undefined,
-
+                title: title.trim(),
+                description: description ? description.trim() : null,
+                videoProvider: videoProvider || "CLOUDINARY",
+                videoId: videoId || `v_${Date.now()}`,
+                videoUrl: videoUrl || "",
+                thumbnailUrl: thumbnailUrl || null,
+                durationSeconds: Number(durationSeconds) || 0,
+                fileSizeBytes: Number(fileSizeBytes) || 0,
                 orderIndex:
-                    orderIndex !== undefined
+                    orderIndex !== undefined && !isNaN(Number(orderIndex))
                         ? Number(orderIndex)
                         : undefined,
-
-                isPreview,
+                isPreview: Boolean(isPreview),
+                isPublished:
+                    isPublished !== undefined
+                        ? Boolean(isPublished)
+                        : true,
             },
             req.user.role
         );
 
+        // 4. MUST send response back to client
         return res.status(201).json({
             success: true,
             message: "Lesson created successfully",
             data: {
                 ...lesson,
-                fileSizeBytes:
-                    lesson.fileSizeBytes?.toString(),
+                fileSizeBytes: lesson.fileSizeBytes?.toString(),
             },
         });
     } catch (error) {
+        console.error("Error creating lesson:", error);
         const message =
             error instanceof Error
                 ? error.message
-                : "Failed to create lesson";
+                : "Internal server error creating lesson";
 
         if (message === "Course module not found") {
             return res.status(404).json({
                 success: false,
-                message,
+                message: `Module with id "${req.params.moduleId}" not found`,
             });
         }
 
@@ -119,14 +103,17 @@ export const createLessonController = async (
             });
         }
 
-        console.error("Create lesson error:", error);
-
+        // 5. CRITICAL: Never let error block Express request pipeline
         return res.status(500).json({
             success: false,
-            message: "Failed to create lesson",
+            message: message || "Internal server error creating lesson",
+            error: process.env.NODE_ENV === "development" ? (error instanceof Error ? error.stack : error) : undefined,
         });
     }
 };
+
+// Also export alias createLesson for controller compatibility
+export const createLesson = createLessonController;
 export const getLessonsController = async (
     req: Request,
     res: Response

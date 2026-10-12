@@ -2,15 +2,16 @@ import { prisma } from "../config/database";
 
 interface CreateLessonData {
     title: string;
-    description?: string;
+    description?: string | null;
     videoProvider?: string;
-    videoId: string;
-    videoUrl: string;
-    thumbnailUrl?: string;
+    videoId?: string;
+    videoUrl?: string;
+    thumbnailUrl?: string | null;
     durationSeconds?: number;
-    fileSizeBytes?: bigint;
+    fileSizeBytes?: bigint | number;
     orderIndex?: number;
     isPreview?: boolean;
+    isPublished?: boolean;
 }
 
 export const createLesson = async (
@@ -19,7 +20,7 @@ export const createLesson = async (
     data: CreateLessonData,
     userRole?: string
 ) => {
-    // Check module exists
+    // 1. Verify parent Module exists before inserting (prevents FK lock hang)
     const module = await prisma.courseModule.findUnique({
         where: {
             id: moduleId,
@@ -33,26 +34,66 @@ export const createLesson = async (
         throw new Error("Course module not found");
     }
 
-    // Check trainer owns the course or user is ADMIN
-    if (userRole !== "ADMIN" && module.course.trainerId !== trainerId) {
+    // 2. Check trainer owns the course or user is ADMIN
+    if (userRole !== "ADMIN" && module.course?.trainerId !== trainerId) {
         throw new Error(
             "You are not allowed to add lessons to this module"
         );
     }
 
+    // 3. Resilient orderIndex calculation to avoid unique constraint deadlock / conflicts
+    let finalOrderIndex =
+        data.orderIndex !== undefined && !isNaN(Number(data.orderIndex))
+            ? Number(data.orderIndex)
+            : undefined;
+
+    if (finalOrderIndex === undefined) {
+        const lastLesson = await prisma.lesson.findFirst({
+            where: { moduleId },
+            orderBy: { orderIndex: "desc" },
+            select: { orderIndex: true },
+        });
+        finalOrderIndex = (lastLesson?.orderIndex ?? 0) + 1;
+    } else {
+        const existing = await prisma.lesson.findUnique({
+            where: {
+                moduleId_orderIndex: {
+                    moduleId,
+                    orderIndex: finalOrderIndex,
+                },
+            },
+        });
+        if (existing) {
+            const lastLesson = await prisma.lesson.findFirst({
+                where: { moduleId },
+                orderBy: { orderIndex: "desc" },
+                select: { orderIndex: true },
+            });
+            finalOrderIndex = (lastLesson?.orderIndex ?? 0) + 1;
+        }
+    }
+
+    // 4. Create the lesson (Sanitize numbers, booleans, and defaults)
     const lesson = await prisma.lesson.create({
         data: {
             moduleId,
-            title: data.title,
-            description: data.description,
-            videoProvider: data.videoProvider ?? "CLOUDINARY",
-            videoId: data.videoId,
-            videoUrl: data.videoUrl,
-            thumbnailUrl: data.thumbnailUrl,
-            durationSeconds: data.durationSeconds ?? 0,
-            fileSizeBytes: data.fileSizeBytes ?? BigInt(0),
-            orderIndex: data.orderIndex ?? 1,
-            isPreview: data.isPreview ?? false,
+            title: data.title.trim(),
+            description: data.description ? data.description.trim() : null,
+            videoProvider: data.videoProvider || "CLOUDINARY",
+            videoId: data.videoId || `v_${Date.now()}`,
+            videoUrl: data.videoUrl || "",
+            thumbnailUrl: data.thumbnailUrl || null,
+            durationSeconds: Number(data.durationSeconds) || 0,
+            fileSizeBytes:
+                data.fileSizeBytes !== undefined && data.fileSizeBytes !== null
+                    ? BigInt(data.fileSizeBytes)
+                    : BigInt(0),
+            orderIndex: finalOrderIndex,
+            isPreview: Boolean(data.isPreview),
+            isPublished:
+                data.isPublished !== undefined
+                    ? Boolean(data.isPublished)
+                    : true,
         },
     });
 
@@ -114,7 +155,7 @@ export const updateLesson = async (
         throw new Error("Course module not found");
     }
 
-    if (userRole !== "ADMIN" && module.course.trainerId !== trainerId) {
+    if (userRole !== "ADMIN" && module.course?.trainerId !== trainerId) {
         throw new Error(
             "You are not allowed to update lessons in this module"
         );
@@ -203,7 +244,7 @@ export const deleteLesson = async (
         throw new Error("Course module not found");
     }
 
-    if (userRole !== "ADMIN" && module.course.trainerId !== trainerId) {
+    if (userRole !== "ADMIN" && module.course?.trainerId !== trainerId) {
         throw new Error(
             "You are not allowed to delete lessons from this module"
         );
@@ -264,7 +305,7 @@ export const toggleLessonPublish = async (
         throw new Error("Course module not found");
     }
 
-    if (userRole !== "ADMIN" && module.course.trainerId !== trainerId) {
+    if (userRole !== "ADMIN" && module.course?.trainerId !== trainerId) {
         throw new Error(
             "You are not allowed to publish this lesson"
         );
