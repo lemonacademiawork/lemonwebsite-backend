@@ -70,6 +70,15 @@ app.use(
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 app.use(cookieParser());
 
+// Health check & welcome endpoint
+app.get("/", (_req, res) => {
+  res.status(200).json({
+    success: true,
+    message: "Lemon Academia API is running",
+    timestamp: new Date().toISOString(),
+  });
+});
+
 // Swagger Documentation
 setupSwagger(app);
 
