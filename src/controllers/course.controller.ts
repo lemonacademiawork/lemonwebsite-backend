@@ -14,6 +14,26 @@ import {
     reorderCourseLessons,
 } from "../services/course.service";
 
+/**
+ * Normalizes course price fields for both decimal/number formats
+ * and provides aliases (discountPrice / discountedPrice) to ensure compatibility with all frontends.
+ */
+export const formatCourseResponse = (course: any) => {
+    if (!course) return course;
+    const plain = typeof course.toJSON === "function" ? course.toJSON() : { ...course };
+    const numPrice = course.price !== null && course.price !== undefined ? Number(course.price) : 0;
+    const numDiscount = course.discountedPrice !== null && course.discountedPrice !== undefined
+        ? Number(course.discountedPrice)
+        : numPrice;
+
+    return {
+        ...plain,
+        price: numPrice,
+        discountedPrice: numDiscount,
+        discountPrice: numDiscount, // alias matching frontend integration docs
+    };
+};
+
 export const createCourseController = async (
     req: Request,
     res: Response
@@ -30,8 +50,6 @@ export const createCourseController = async (
             title,
             slug,
             description,
-            price,
-            discountedPrice,
             thumbnailUrl,
             startDate,
             endDate,
@@ -40,24 +58,31 @@ export const createCourseController = async (
             isPublished,
         } = req.body;
 
+        const rawPrice = req.body.price !== undefined ? req.body.price : req.body.regularPrice;
+        const rawDiscount = req.body.discountedPrice !== undefined
+            ? req.body.discountedPrice
+            : (req.body.discountPrice !== undefined ? req.body.discountPrice : req.body.discount_price);
+
         // Basic validation
-        if (!title || !slug || !description || price === undefined) {
+        if (!title || !slug || !description || rawPrice === undefined) {
             return res.status(400).json({
                 success: false,
                 message: "Title, slug, description and price are required",
             });
         }
 
+        const priceNum = Number(rawPrice);
+        const discountNum = rawDiscount !== undefined && rawDiscount !== null && rawDiscount !== ""
+            ? Number(rawDiscount)
+            : priceNum;
+
         const course = await createCourse(
             {
                 title,
                 slug,
                 description,
-                price: Number(price),
-                discountedPrice:
-                    discountedPrice !== undefined
-                        ? Number(discountedPrice)
-                        : undefined,
+                price: priceNum,
+                discountedPrice: discountNum,
                 thumbnailUrl,
                 startDate,
                 endDate,
@@ -72,7 +97,7 @@ export const createCourseController = async (
         return res.status(201).json({
             success: true,
             message: "Course created successfully",
-            data: course,
+            data: formatCourseResponse(course),
         });
     } catch (error) {
         const message =
@@ -110,11 +135,16 @@ export const getAllCoursesController = async (
             limit: limit !== undefined ? Number(limit) : 5, // Default 5 courses per page
         });
 
+        const formattedCourses = result.courses.map(formatCourseResponse);
+
         return res.status(200).json({
             success: true,
             message: "Courses retrieved successfully",
-            data: result,
-            courses: result.courses,
+            data: {
+                ...result,
+                courses: formattedCourses,
+            },
+            courses: formattedCourses,
             pagination: result.pagination,
         });
     } catch (error) {
@@ -146,7 +176,7 @@ export const getCourseByIdController = async (
         return res.status(200).json({
             success: true,
             message: "Course retrieved successfully",
-            data: course,
+            data: formatCourseResponse(course),
         });
     } catch (error) {
         const message =
@@ -194,8 +224,6 @@ export const updateCourseController = async (
             title,
             slug,
             description,
-            price,
-            discountedPrice,
             thumbnailUrl,
             startDate,
             endDate,
@@ -204,6 +232,22 @@ export const updateCourseController = async (
             isPublished,
         } = req.body;
 
+        const rawPrice = req.body.price !== undefined
+            ? req.body.price
+            : (req.body.regularPrice !== undefined ? req.body.regularPrice : req.body.originalPrice);
+
+        const rawDiscount = req.body.discountedPrice !== undefined
+            ? req.body.discountedPrice
+            : (req.body.discountPrice !== undefined ? req.body.discountPrice : req.body.discount_price);
+
+        const priceNum = rawPrice !== undefined && rawPrice !== null && rawPrice !== ""
+            ? Number(rawPrice)
+            : undefined;
+
+        const discountNum = rawDiscount !== undefined && rawDiscount !== null && rawDiscount !== ""
+            ? Number(rawDiscount)
+            : undefined;
+
         const updatedCourse = await updateCourse(
             id,
             req.user.userId,
@@ -211,14 +255,8 @@ export const updateCourseController = async (
                 title,
                 slug,
                 description,
-                price:
-                    price !== undefined
-                        ? Number(price)
-                        : undefined,
-                discountedPrice:
-                    discountedPrice !== undefined
-                        ? Number(discountedPrice)
-                        : undefined,
+                price: priceNum,
+                discountedPrice: discountNum,
                 thumbnailUrl,
                 startDate,
                 endDate,
@@ -235,7 +273,7 @@ export const updateCourseController = async (
         return res.status(200).json({
             success: true,
             message: "Course updated successfully",
-            data: updatedCourse,
+            data: formatCourseResponse(updatedCourse),
         });
     } catch (error) {
         const message =
@@ -484,7 +522,7 @@ export const getCourseBySlugController = async (
         return res.status(200).json({
             success: true,
             message: "Course fetched successfully",
-            data: course,
+            data: formatCourseResponse(course),
         });
     } catch (error) {
         console.error("Get course by slug error:", error);

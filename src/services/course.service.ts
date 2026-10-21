@@ -237,7 +237,8 @@ export const updateCourse = async (
     }
 
     // Only the trainer who owns the course or an ADMIN can update it
-    if (userRole !== "ADMIN" && course.trainerId !== trainerId) {
+    const isAdmin = userRole?.toUpperCase() === "ADMIN";
+    if (!isAdmin && course.trainerId !== trainerId) {
         throw new Error("You are not allowed to update this course");
     }
 
@@ -258,14 +259,24 @@ export const updateCourse = async (
     if (data.title !== undefined) updateData.title = data.title;
     if (data.slug !== undefined) updateData.slug = data.slug;
     if (data.description !== undefined) updateData.description = data.description;
-    if (data.price !== undefined) updateData.price = data.price;
+    if (data.price !== undefined) {
+        updateData.price = data.price;
+        // If discountedPrice was not explicitly provided in the update,
+        // and previously price == discountedPrice (or discountedPrice was null),
+        // keep discountedPrice in sync with the new price so the course list price updates properly
+        if (data.discountedPrice === undefined) {
+            if (!course.discountedPrice || Number(course.price) === Number(course.discountedPrice)) {
+                updateData.discountedPrice = data.price;
+            }
+        }
+    }
     if (data.discountedPrice !== undefined) updateData.discountedPrice = data.discountedPrice;
     if (data.thumbnailUrl !== undefined) updateData.thumbnailUrl = data.thumbnailUrl;
     if (data.startDate !== undefined) updateData.startDate = data.startDate ? new Date(data.startDate) : null;
     if (data.endDate !== undefined) updateData.endDate = data.endDate ? new Date(data.endDate) : null;
     if (data.categoryId !== undefined) updateData.categoryId = data.categoryId || null;
     if (data.isPublished !== undefined) updateData.isPublished = data.isPublished;
-    if (data.trainerId !== undefined && (userRole === "ADMIN" || course.trainerId === trainerId)) {
+    if (data.trainerId !== undefined && (isAdmin || course.trainerId === trainerId)) {
         updateData.trainerId = data.trainerId;
     }
 

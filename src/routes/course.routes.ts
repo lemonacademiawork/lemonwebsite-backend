@@ -672,6 +672,12 @@ router.patch(
     updateCourseController
 );
 
+router.put(
+    "/:id",
+    authenticate,
+    updateCourseController
+);
+
 /**
  * @swagger
  * /api/v1/courses/{id}:
