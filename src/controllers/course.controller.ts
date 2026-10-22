@@ -63,22 +63,24 @@ export const createCourseController = async (
             ? req.body.discountedPrice
             : (req.body.discountPrice !== undefined ? req.body.discountPrice : req.body.discount_price);
 
-        // Basic validation
-        if (!title || !slug || !description || rawPrice === undefined) {
+        // Flexible validation: only title is strictly required; price defaults to 0 if not given
+        if (!title || !String(title).trim()) {
             return res.status(400).json({
                 success: false,
-                message: "Title, slug, description and price are required",
+                message: "Course title is required",
             });
         }
 
-        const priceNum = Number(rawPrice);
+        const priceNum = rawPrice !== undefined && rawPrice !== null && rawPrice !== ""
+            ? Number(rawPrice)
+            : 0;
         const discountNum = rawDiscount !== undefined && rawDiscount !== null && rawDiscount !== ""
             ? Number(rawDiscount)
             : priceNum;
 
         const course = await createCourse(
             {
-                title,
+                title: String(title).trim(),
                 slug,
                 description,
                 price: priceNum,
@@ -132,7 +134,7 @@ export const getAllCoursesController = async (
             trainerId: trainerId ? String(trainerId) : undefined,
             isPublished: isPublished !== undefined ? String(isPublished) : undefined,
             page: page !== undefined ? Number(page) : 1,
-            limit: limit !== undefined ? Number(limit) : 5, // Default 5 courses per page
+            limit: limit !== undefined ? Number(limit) : 50, // Default 50 courses per page so courses list properly
         });
 
         const formattedCourses = result.courses.map(formatCourseResponse);

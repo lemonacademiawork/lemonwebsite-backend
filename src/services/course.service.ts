@@ -2,8 +2,8 @@ import { prisma } from "../config/database";
 
 export interface CreateCourseData {
     title: string;
-    slug: string;
-    description: string;
+    slug?: string;
+    description?: string;
     price: number;
     discountedPrice?: number;
     thumbnailUrl?: string;
@@ -14,19 +14,56 @@ export interface CreateCourseData {
     isPublished?: boolean;
 }
 
+export const generateSlug = (text: string): string => {
+    return text
+        .toLowerCase()
+        .trim()
+        .replace(/[^\w\s-]/g, "")
+        .replace(/[\s_-]+/g, "-")
+        .replace(/^-+|-+$/g, "");
+};
+
 export const createCourse = async (
     data: CreateCourseData,
     creatorUserId: string,
     userRole?: string
 ) => {
+    // Determine unique slug
+    let finalSlug = data.slug ? generateSlug(data.slug) : generateSlug(data.title);
+    if (!finalSlug) {
+        finalSlug = `course-${Date.now()}`;
+    }
+
     const existingCourse = await prisma.course.findUnique({
         where: {
-            slug: data.slug,
+            slug: finalSlug,
         },
     });
 
     if (existingCourse) {
-        throw new Error("Course with this slug already exists");
+        finalSlug = `${finalSlug}-${Date.now().toString().slice(-4)}`;
+    }
+
+    // Determine fallback description if omitted
+    const finalDescription = data.description && data.description.trim()
+        ? data.description.trim()
+        : data.title;
+
+    // Resolve categoryId (handles UUID, name, or slug safely)
+    let finalCategoryId: string | null = null;
+    if (data.categoryId) {
+        const cat = await prisma.category.findFirst({
+            where: {
+                OR: [
+                    { id: data.categoryId },
+                    { name: { equals: data.categoryId, mode: "insensitive" } },
+                    { slug: { equals: data.categoryId, mode: "insensitive" } },
+                ],
+            },
+        });
+        if (cat) {
+            finalCategoryId = cat.id;
+        }
     }
 
     // Determine final trainerId:
@@ -42,14 +79,14 @@ export const createCourse = async (
     const course = await prisma.course.create({
         data: {
             title: data.title,
-            slug: data.slug,
-            description: data.description,
+            slug: finalSlug,
+            description: finalDescription,
             price: data.price,
             discountedPrice: data.discountedPrice,
             thumbnailUrl: data.thumbnailUrl,
             startDate: data.startDate ? new Date(data.startDate) : null,
             endDate: data.endDate ? new Date(data.endDate) : null,
-            categoryId: data.categoryId || null,
+            categoryId: finalCategoryId,
             trainerId: finalTrainerId,
             isPublished: data.isPublished !== undefined ? data.isPublished : true, // Default to true
         },
